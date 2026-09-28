@@ -1,4 +1,4 @@
-# 1. Ansedo
+﻿# 1. Ansedo
 
 * **Название ресурса:** Ansedo
 * **Адрес в сети:** `https://ansedo.com/ru/`
@@ -365,3 +365,297 @@
 #### Дополнительно (Could Have)
 * **Игровые гайды и базы данных:** Интеграция кратких карточек/инструкций по запуску кооперативных игр прямо в карточку поиска тиммейта.
 * **Интеграция с API (Steam, Discord, Riot Games):** Авторизация и автоматическое подтверждение рангов/статистики для защиты от фейков.
+
+
+# 4. Teamplay
+
+* **Название ресурса:** Teamplay
+* **Адрес в сети:** `https://teamplay.gg/ru`
+
+* **Анализ архитектуры и логики:**
+  * **Архитектурный паттерн:** SPA (Single Page Application) с клиентским рендерингом (CSR). Данные загружаются асинхронно через GraphQL без перезагрузки страницы. Навигация реализована на TanStack Router (v1.3), о чём свидетельствует ключ `tsr-scroll-restoration-v1_3` в Session Storage.
+  * **Клиентский стек и сборка:** React + TypeScript, TanStack Query / Apollo Client, Vite, fetch с `credentials: 'include'`, кастомные шрифты `.woff2`.
+  * **API и взаимодействие:** GraphQL (`POST https://teamplay.gg/graphql`), формат JSON (`{ query, variables }`). Кастомные заголовки: `tm-client: 13.7.3+5f098eb5`, `tm-captcha`, `active-tab`, `language`, `sentry-trace`, `baggage`.
+  * **Серверная инфраструктура и Backend:** Java (по куке `JSESSIONID`), Firebase Realtime Database, Firebase Cloud Messaging, WebRTC (встроенный чат), Sentry (мониторинг).
+  * **Безопасность и сессии:** JWT `authToken` (HS256), `JSESSIONID`, reCAPTCHA (`tm-captcha`), HTTPS, слабый HSTS.
+
+### Стек технологий Teamplay.gg
+
+| Компонент | Технология |
+|---|---|
+| **Фронтенд** | React + TypeScript |
+| **Роутер** | TanStack Router (v1.3) |
+| **Управление запросами** | TanStack Query / Apollo Client |
+| **HTTP-клиент** | нативный `fetch` с `credentials: 'include'` |
+| **Сборщик** | Vite |
+| **API** | GraphQL (`POST /graphql`) |
+| **Авторизация** | JWT (`authToken`) + `JSESSIONID` + OAuth (7 провайдеров) |
+| **OAuth-провайдеры** | Discord, Google, Steam, Epic Games, Riot Games, Bungie, Xbox |
+| **WebRTC** | Встроенный голосовой/видео чат |
+| **Бэкенд** | Java (по `JSESSIONID`) |
+| **База данных** | Firebase Realtime Database |
+| **Push-уведомления** | Firebase Cloud Messaging |
+| **Мониторинг** | Sentry + RUM |
+| **Согласие на куки** | CookieYes |
+| **Защита** | Google reCAPTCHA |
+| **Версия клиента** | `13.7.3+5f098eb5` |
+
+### JWT-токен (`authToken`)
+
+| Поле | Значение | Назначение |
+|---|---|---|
+| `iss` | `gql` | Издатель (GraphQL-сервер) |
+| `i` | `1c542fe9-1b3b-425d-b900-9809d3f1dd5f` | ID пользователя (UUID) |
+| `iat` | `1790077414` | Время выпуска (Unix timestamp) |
+| `s` | `83f5a218-5e50-449f-9f42-964d600032ee` | Session ID |
+| `exp` | отсутствует | Срок действия контролируется на сервере |
+| **Алгоритм** | `HS256` | Симметричная подпись (HMAC + SHA-256) |
+
+### Безопасность cookie
+
+| Cookie | HttpOnly | Secure | SameSite | Expires | Назначение |
+|---|---|---|---|---|---|
+| `authToken` | ✅ | ✅ | `None` | 2027 | JWT-токен авторизации |
+| `JSESSIONID` | ✅ | ❌ | `None` | Session | Java-сессия |
+| `cookieyes-consent` | ❌ | ✅ | `Strict` | 2027 | Согласие на куки |
+| `locale` | ❌ | ❌ | `None` | 2026 | Язык (`ru`) |
+| `x-utm` | ❌ | ❌ | `None` | 2026 | UTM-метки |
+| `x-oauth-redirect` | ❌ | ❌ | `None` | 2026 | Redirect после OAuth |
+
+### Уязвимости и защита
+
+| Аспект | Состояние |
+|---|---|
+| HTTPS | ✅ |
+| JWT (HS256, без exp) | ✅ |
+| HttpOnly для сессии | ✅ |
+| Secure для `authToken` | ✅ |
+| Secure для `JSESSIONID` | ❌ |
+| SameSite `None` для сессии | ⚠️ Риск CSRF |
+| Префиксы `__Host-` / `__Secure-` | ❌ Не используются |
+| CSP | ❌ Отсутствует |
+| HSTS | ⚠️ Слабый |
+| XFO | ❌ Отсутствует |
+| COOP | ❌ Отсутствует |
+| Trusted Types | ❌ Отсутствует |
+| reCAPTCHA | ✅ (`tm-captcha`) |
+
+### API и взаимодействие
+
+| Параметр | Значение |
+|---|---|
+| **Тип API** | GraphQL |
+| **Эндпоинт** | `POST https://teamplay.gg/graphql` |
+| **Формат** | JSON (`{ query, variables }`) |
+| **HTTP-клиент** | нативный `fetch` |
+| **Credentials** | `include` (куки отправляются автоматически) |
+| **Заголовки** | `tm-client`, `tm-captcha`, `active-tab`, `language`, `sentry-trace`, `baggage` |
+| **Запросы** | `Me` (текущий пользователь), `GetOauthRedirectLink` (OAuth), посты LFG, профили |
+
+### Семантика HTML5
+
+| Тег | Количество |
+|---|---|
+| `<header>` | 1 |
+| `<nav>` | 1 |
+| `<main>` | 1 |
+| `<section>` | несколько |
+| `<article>` | 0 |
+| `<aside>` | 1 |
+| `<footer>` | 1 |
+| `<h1>` | 1 |
+| `<h2>` | 1 |
+| `<h3>` | 0 |
+
+### Альтернативная верстка и семантика классов
+
+| Параметр | Значение |
+|---|---|
+| **БЭМ** | ❌ Не используется |
+| **Префикс** | `tp-` (TeamPlay) |
+| **Примеры** | `tp-call-client-session`, `tp.sidebar-collapsed` |
+| **UI-классы** | Утилитарные (вероятно, Tailwind CSS) |
+
+### Адаптивность
+
+| Параметр | Значение |
+|---|---|
+| **Диапазон** | 320px – 1920px+ |
+| **Мобильное меню** | Компактное + нижняя навигация |
+| **Сетка** | Flexbox / CSS Grid |
+| **Брейкпоинты** | `@media (min-width: ...)` |
+
+### Cookies — аналитика
+
+| Инструмент | Cookies |
+|---|---|
+| **Google Analytics 4** | `_ga`, `_ga_QP0P771RGM` |
+| **Google Ads** | `_gcl_au` |
+| **Яндекс.Метрика** | `_ym_uid`, `_ym_d`, `_ym_isad`, `_ym_visorc`, `yandexuid`, `yashr`, `yabs-sid`, `bh`, `is_gdpr`, `my`, `pi`, `i` |
+| **Reddit Pixel** | `_rdt_uuid` |
+| **Hotjar** | `_hjSession_*`, `_hjSessionUser_*` |
+| **CookieYes** | `cookieyes-consent` |
+
+### Local Storage
+
+| Ключ | Значение | Назначение |
+|---|---|---|
+| `_ym_uid` | `1790077433114997907` | Яндекс.Метрика (User ID) |
+| `_ym_d` | `1790077433` | Яндекс.Метрика (Date) |
+| `_ym_isad` | `2` | Яндекс.Метрика (AdBlock) |
+| `_ym_visorc` | `w` | Яндекс.Метрика (WebVisor) |
+| `_ym_cc` | `255692801790077440&29834623` | Яндекс.Метрика (Client ID) |
+| `_ym_csu` | `29834623` | Яндекс.Метрика (CS User) |
+| `_ym_fip` | `047bf58e...` | Яндекс.Метрика (Fingerprint) |
+| `_ym_synced` | `{}` | Яндекс.Метрика (Sync) |
+| `_ym_retryReqs` | `{}` | Яндекс.Метрика (Retry) |
+| `_ym_wv2rf:91797464:0` | `1` | Яндекс.Метрика (WebVisor 2) |
+| `_ym_zzlc` | `17900774336349461265451008445381` | Яндекс.Метрика (антифрод) |
+| `_gcl_ls` | `{"schema":"gcl",...}` | Google Ads (Click ID) |
+| `first_landing_page` | `/ru` | UTM-метка |
+| `first_medium` | `none` | UTM-метка |
+| `first_referrer` | (пусто) | UTM-метка |
+| `first_source` | `direct` | UTM-метка |
+| `sentry-identity` | `{id, username: "User11071", session}` | Sentry (ID пользователя) |
+| `tp.sidebar-collapsed` | `false` | UI-настройка |
+
+**Счётчик Яндекс.Метрики:** `91797464`
+**ID пользователя:** `1c542fe9-1b3b-425d-b900-9809d3f1dd5f`
+**Username:** `User11071`
+
+### Session Storage
+
+| Ключ | Значение | Назначение |
+|---|---|---|
+| `__ym_tab_guid` | `07b5b456-7495-4492-9dd9-e10b21c8d5c6` | Яндекс.Метрика (GUID вкладки) |
+| `_rdt_cfg` | `{"pixelId":"a2_et73j8r0rvno",...}` | Reddit Pixel (конфиг) |
+| `tp-call-client-session` | `557dbca5-61a1-43cb-8bc5-5686270474a9` | WebRTC-сессия звонка |
+| `tsr-scroll-restoration-v1_3` | `{...}` | TanStack Router (восстановление скролла) |
+
+### Lighthouse — итоговые оценки
+
+| Категория | Оценка | Статус |
+|---|---|---|
+| **Performance** | 41 | 🔴 Плохо |
+| **Accessibility** | 90 | 🟢 Хорошо |
+| **Best Practices** | 77 | 🟡 Средне |
+| **SEO** | 66 | 🟡 Средне |
+
+**Условия проверки:** Mobile (Emulated Moto G Power), Slow 4G, Lighthouse 13.4.1, Chromium 153, дата 22.09.2026, 14:51 GMT+3.
+
+### Lighthouse — метрики Performance
+
+| Метрика | Значение | Статус |
+|---|---|---|
+| First Contentful Paint (FCP) | 2.0 s | 🟡 |
+| Largest Contentful Paint (LCP) | 14.2 s | 🔴 |
+| Total Blocking Time (TBT) | 1,120 ms | 🔴 |
+| Cumulative Layout Shift (CLS) | 0 | 🟢 |
+| Speed Index | 12.2 s | 🔴 |
+
+### Lighthouse — проблемы Best Practices
+
+| Проблема | Серьёзность |
+|---|---|
+| Uses third-party cookies (14 cookies found) | 🟡 |
+| Issues were logged in the Issues panel | 🟡 |
+| Missing source maps for large first-party JavaScript | 🟡 |
+| CSP не настроена | 🔴 |
+| HSTS слабый | 🟡 |
+| Нет COOP | 🟡 |
+| Нет XFO | 🟡 |
+| Нет Trusted Types | 🟡 |
+
+### Lighthouse — проблемы Accessibility
+
+| Проблема |
+|---|
+| `[aria-*]` attributes do not match their roles |
+| Background and foreground colors do not have sufficient contrast ratio |
+
+### Lighthouse — проблемы SEO
+
+| Проблема |
+|---|
+| Page is blocked from indexing |
+| Passed audits: 8 (meta description, hreflang, canonical, structured data, title, viewport, legible fonts, crawlable links) |
+
+### Маркетинговые инструменты (Network Audit)
+
+| Инструмент | Обнаружен | Доказательство |
+|---|---|---|
+| Яндекс.Метрика | ✅ | Счётчик `91797464` |
+| Google Analytics 4 | ✅ | `_ga`, `_ga_QP0P771RGM` |
+| Google Ads | ✅ | `_gcl_au`, `_gcl_ls` |
+| Reddit Pixel | ✅ | `_rdt_uuid`, `_rdt_cfg` |
+| Hotjar | ✅ | `_hjSession_*`, `_hjSessionUser_*` |
+| Facebook Pixel | ❌ | — |
+
+---
+
+## 4.1. Анализ функциональных возможностей ресурса и приоритеты реализации
+
+### Функциональные возможности teamplay.gg
+
+#### Плюсы
+
+| # | Плюс |
+|---|---|
+| 1 | Современный стек (React + TypeScript + GraphQL + Vite) |
+| 2 | Встроенный WebRTC-чат (голос + видео) |
+| 3 | 7 OAuth-провайдеров (Discord, Google, Steam, Epic, Riot, Bungie, Xbox) |
+| 4 | Развитая система LFG-постов (3 формата, комментарии, баннеры) |
+| 5 | Профили игроков (статистика, ранги, привязанные аккаунты) |
+| 6 | Firebase Realtime Database + FCM |
+| 7 | Мониторинг Sentry + RUM |
+| 8 | Accessibility 90/100, CLS = 0 |
+
+#### Минусы
+
+| # | Минус |
+|---|---|
+| 1 | Performance 41/100 (LCP 14.2 s, TBT 1,120 ms) |
+| 2 | Best Practices 77/100 (нет CSP, XFO, COOP, Trusted Types) |
+| 3 | `JSESSIONID` без `Secure`, `SameSite: None` для сессии, нет `__Host-` |
+| 4 | Агрессивная аналитика (14 cookies, GA4, Google Ads, Яндекс, Reddit, Hotjar) |
+| 5 | SEO 66/100 — страница закрыта от индексации |
+| 6 | Тяжёлый JS-бандл (React + Firebase SDK + Sentry + Hotjar + Метрика) |
+
+---
+
+### Перечень и приоритеты функций для внедрения в наш проект (MoSCoW)
+
+#### Критически важно (Must Have)
+
+| Функция | Обоснование |
+|---|---|
+| Механика свайпов и взаимный мэтчинг | Ядро продукта, отличие от LFG-постов Teamplay |
+| Встроенный голосовой чат (WebRTC) | Перенос ключевой фичи Teamplay |
+| Экстремальная производительность (Lighthouse 90+) | Отличие от Teamplay (41) |
+| Mobile-First адаптивность | Работа жестов свайпа на смартфонах |
+| Авторизация через 7+ OAuth | По образцу Teamplay |
+| Автосохранение в LocalStorage | Черновики профиля (`tp-*`) |
+| Firebase Realtime Database + FCM | Синхронизация мэтчей и push-уведомления |
+| Строгая безопасность cookie | `HttpOnly`, `Secure`, `SameSite: Lax`, `__Host-` |
+
+#### Важно (Should Have)
+
+| Функция | Обоснование |
+|---|---|
+| Параметрические фильтры подбора | По играм, рангам, регионам, платформам, языку |
+| Геймерская карточка профиля | Никнейм, ранг, роли, прайм-тайм, микрофон |
+| Тёмная тема (Dark Mode) | Геймерский стандарт UI |
+| Отсутствие агрессивных трекеров | Скорость (90+) и приватность |
+| Внедрение CSP, XFO, COOP, Trusted Types | Исправление уязвимостей Teamplay |
+| Семантическая разметка `<article>` | В Teamplay — 0 шт. |
+| SEO-оптимизация публичных страниц | Открыть для индексации |
+
+#### Дополнительно (Could Have)
+
+| Функция | Обоснование |
+|---|---|
+| Интеграция с API игр (Steam, Riot) | Верификация рангов и статистики |
+| Haptic Feedback | Вибрация при мэтче |
+| LFG-баннеры для шеринга | Автогенерация для Discord/X/Reddit |
+| Sentry + RUM (отложенная загрузка) | По образцу Teamplay, но без потери Performance |
+| HTTP/3 (QUIC) | По образцу Team Tavern |
