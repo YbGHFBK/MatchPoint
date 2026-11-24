@@ -1,15 +1,16 @@
 /* ==========================================================================
-   MatchPoint — Единая дизайн-система (client/css/main.css)
+   MatchPoint — Единая дизайн-система и стили ядра (client/css/main.css)
    Зона ответственности: Фронтенд-ядро (Карулис Иван)
-   Состав модуля:
-   1. Цветовая палитра и дизайн-токены (Dark / Light темы + семантика БД)
-   2. Сброс стилей, база и модульная типографика
-   3. Сетки, контейнеры и каркасы для всех страниц проекта
-   4. Шапка сайта с адаптивным бургер-меню и выдвижным drawer-меню
-   5. Система кнопок (варианты, размеры, состояния, загрузка)
-   6. Формы, поля ввода, селекты, переключатели и валидация
-   7. Карточки, таблицы (для админки/команд), вкладки, бейджи и Trust Factor
+   Синхронизировано с 01_schema.sql, 02_seed.sql и структурой client/css/:
+   1. Цветовая палитра и CSS-переменные (dark / light темы)
+   2. Сброс, база и модульная типографика
+   3. Контейнеры, каркасы и сетки для всех страниц (index, events, teams, profile, admin)
+   4. Шапка сайта с адаптивным бургер-меню и переключателем аккаунта/темы
+   5. Кнопки (варианты, размеры, состояния, индикатор загрузки)
+   6. Формы, селекты и валидация
+   7. Универсальные карточки, таблицы, вкладки, статусы БД и Trust Factor
    8. Модальные окна и тост-уведомления
+   9. Свайп-колода, фильтры, взаимные мэтчи и лобби-чат
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
@@ -20,7 +21,7 @@
   --mp-loaded: 1;
   color-scheme: dark;
 
-  /* Поверхности и фоновые слои */
+  /* Поверхности */
   --bg-primary: #0b0e14;
   --bg-secondary: #121722;
   --bg-surface: #171d2b;
@@ -29,19 +30,19 @@
   --bg-glass: rgba(18, 23, 34, 0.88);
   --bg-overlay: rgba(5, 8, 15, 0.76);
 
-  /* Границы и контуры фокуса */
+  /* Границы и кольцо фокуса */
   --border-subtle: #263044;
   --border-strong: #364461;
   --border-focus: #7c5cff;
   --ring-focus: 0 0 0 3px rgba(124, 92, 255, 0.32);
 
-  /* Иерархия текста */
+  /* Текст */
   --text-primary: #eef2f9;
   --text-secondary: #98a3b8;
   --text-muted: #667289;
   --text-inverse: #0b0e14;
 
-  /* Фирменная палитра MatchPoint */
+  /* Фирменные акценты */
   --accent-lime: #b8ff3b;
   --accent-lime-hover: #c9ff66;
   --accent-lime-soft: rgba(184, 255, 59, 0.14);
@@ -50,33 +51,33 @@
   --accent-violet-hover: #8f73ff;
   --accent-violet-soft: rgba(124, 92, 255, 0.16);
 
-  /* Семантика свайпов и статусов БД */
-  --accent-like: #2ee57d;          /* swipes.is_like = true / active / accepted */
+  /* Семантика БД (swipes, users.status, reports, events, trust_score) */
+  --accent-like: #2ee57d;
   --accent-like-soft: rgba(46, 229, 125, 0.15);
 
-  --accent-skip: #ff4d6d;          /* swipes.is_like = false / banned / danger */
+  --accent-skip: #ff4d6d;
   --accent-skip-soft: rgba(255, 77, 109, 0.15);
 
-  --accent-super: #38bdf8;         /* категория IT / online-ивенты / info */
+  --accent-super: #38bdf8;
   --accent-super-soft: rgba(56, 189, 248, 0.16);
 
-  --accent-warn: #ffb020;          /* muted / pending / жалоба reports */
+  --accent-warn: #ffb020;
   --accent-warn-soft: rgba(255, 176, 32, 0.16);
 
-  /* Типографическая шкала */
+  /* Типографика */
   --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
 
-  --fs-xs: 0.75rem;    /* 12px */
-  --fs-sm: 0.84rem;    /* ~13.5px */
-  --fs-base: 0.94rem;  /* 15px */
-  --fs-md: 1.05rem;    /* ~17px */
-  --fs-lg: 1.25rem;    /* 20px */
-  --fs-xl: 1.5rem;     /* 24px */
-  --fs-2xl: clamp(1.55rem, 2.4vw, 2rem);
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.84rem;
+  --fs-base: 0.94rem;
+  --fs-md: 1.05rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: clamp(1.5rem, 2.4vw, 2rem);
   --fs-3xl: clamp(1.85rem, 3.2vw, 2.5rem);
 
-  /* Шкала отступов */
+  /* Отступы и скругления */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -84,9 +85,7 @@
   --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
-  --space-10: 40px;
 
-  /* Скругления */
   --radius-xs: 8px;
   --radius-sm: 12px;
   --radius-md: 16px;
@@ -101,7 +100,7 @@
   --shadow-glow-lime: 0 8px 24px rgba(184, 255, 59, 0.25);
   --shadow-glow-violet: 0 8px 24px rgba(124, 92, 255, 0.28);
 
-  /* Геометрия макета и слои (z-index) */
+  /* Размеры макета и слои */
   --header-height: 68px;
   --container-max: 1320px;
   --z-dropdown: 90;
@@ -111,13 +110,11 @@
   --z-modal: 200;
   --z-toast: 300;
 
-  /* Анимационные кривые */
+  /* Переходы */
   --transition-fast: 0.16s cubic-bezier(0.2, 0.8, 0.2, 1);
   --transition-base: 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
-  --transition-spring: 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Светлая тема оформления (переключается и хранится в localStorage) */
 [data-theme="light"] {
   color-scheme: light;
 
@@ -126,7 +123,7 @@
   --bg-surface: #ffffff;
   --bg-elevated: #eef2f8;
   --bg-hover: #e4eaf4;
-  --bg-glass: rgba(255, 255, 255, 0.9);
+  --bg-glass: rgba(255, 255, 255, 0.92);
   --bg-overlay: rgba(15, 23, 42, 0.52);
 
   --border-subtle: #dde4f0;
@@ -240,7 +237,6 @@ ol {
   box-shadow: var(--ring-focus);
 }
 
-/* Кастомный скроллбар */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
@@ -255,7 +251,6 @@ ol {
   background: transparent;
 }
 
-/* Типографическая иерархия */
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
   font-weight: 800;
@@ -267,10 +262,6 @@ h1, .heading-xl { font-size: var(--fs-3xl); font-weight: 900; }
 h2, .heading-lg { font-size: var(--fs-2xl); font-weight: 800; }
 h3, .heading-md { font-size: var(--fs-lg);  font-weight: 800; }
 h4, .heading-sm { font-size: var(--fs-md);  font-weight: 700; }
-
-p {
-  color: inherit;
-}
 
 code,
 pre,
@@ -307,7 +298,6 @@ hr,
   margin: var(--space-4) 0;
 }
 
-/* Текстовые модификаторы */
 .text-lead      { font-size: var(--fs-md); color: var(--text-secondary); line-height: 1.6; }
 .text-sm        { font-size: var(--fs-sm); }
 .text-xs        { font-size: var(--fs-xs); }
@@ -319,8 +309,7 @@ hr,
 .text-truncate  { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* --------------------------------------------------------------------------
-   3. КОНТЕЙНЕРЫ, КАРКАСЫ СТРАНИЦ И УНИВЕРСАЛЬНЫЕ СЕТКИ
-   (используются на index, events, teams, profile, admin, auth)
+   3. КОНТЕЙНЕРЫ, КАРКАСЫ И УНИВЕРСАЛЬНЫЕ СЕТКИ ДЛЯ ВСЕХ СТРАНИЦ
    -------------------------------------------------------------------------- */
 .container {
   width: 100%;
@@ -363,7 +352,6 @@ hr,
   margin-bottom: 14px;
 }
 
-/* Универсальные сетки для карточек команд, ивентов, статистики и админки */
 .grid-2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -382,7 +370,6 @@ hr,
   gap: 18px;
 }
 
-/* Двухколоночный каркас с боковой панелью (profile.html, admin.html, teams.html) */
 .sidebar-layout {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
@@ -390,7 +377,6 @@ hr,
   gap: 24px;
 }
 
-/* Сплит-каркас для списка и интерактивной карты ивентов (events.html) */
 .split-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
@@ -407,7 +393,6 @@ hr,
   overflow: hidden;
 }
 
-/* Центрированный каркас авторизации / регистрации (auth.html) */
 .auth-shell {
   min-height: calc(100vh - var(--header-height));
   display: grid;
@@ -444,7 +429,7 @@ hr,
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
 }
 
 .brand {
@@ -474,7 +459,6 @@ hr,
   color: var(--accent-lime);
 }
 
-/* Десктопная навигация */
 .main-nav {
   display: flex;
   align-items: center;
@@ -482,12 +466,12 @@ hr,
 }
 
 .nav-link {
-  padding: 8px 14px;
+  padding: 8px 13px;
   border-radius: var(--radius-full);
-  font-size: 0.88rem;
+  font-size: 0.86rem;
   font-weight: 600;
   color: var(--text-secondary);
-  transition: background-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -517,32 +501,29 @@ hr,
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
-.role-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-full);
+.role-switcher-select {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  font-size: 0.8rem;
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  padding: 7px 12px;
+  font-size: 0.78rem;
   font-weight: 700;
-  color: var(--text-secondary);
+  max-width: 215px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
 }
 
-.role-pill__dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent-like);
-  box-shadow: 0 0 8px var(--accent-like);
+.role-switcher-select:hover,
+.role-switcher-select:focus {
+  border-color: var(--border-strong);
 }
 
-/* Кнопка смены темы (Dark / Light) */
 .theme-toggle {
   width: 38px;
   height: 38px;
@@ -562,7 +543,7 @@ hr,
   transform: translateY(-1px);
 }
 
-/* Кнопка бургер-меню (активируется на планшетах и смартфонах через media.css) */
+/* Бургер-кнопка */
 .burger-btn {
   display: none;
   width: 40px;
@@ -608,7 +589,7 @@ hr,
   transform: translateY(-7px) rotate(-45deg);
 }
 
-/* Затемняющая подложка под мобильное бургер-меню */
+/* Подложка и выдвижное мобильное меню */
 .mobile-drawer-backdrop {
   position: fixed;
   top: var(--header-height);
@@ -626,7 +607,6 @@ hr,
   animation: fadeIn 0.2s ease;
 }
 
-/* Выдвижная панель бургер-меню */
 .mobile-drawer {
   position: fixed;
   top: var(--header-height);
@@ -666,18 +646,12 @@ hr,
 }
 
 @keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* --------------------------------------------------------------------------
-   5. СИСТЕМА КНОПОК (ВАРИАНТЫ, РАЗМЕРЫ, СОСТОЯНИЯ)
+   5. СИСТЕМА КНОПОК
    -------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -712,7 +686,6 @@ hr,
   pointer-events: none;
 }
 
-/* Основной CTA (Лаймовый неон в dark / Изумрудный в light) */
 .btn--primary {
   background: var(--accent-lime);
   color: var(--text-inverse);
@@ -724,7 +697,6 @@ hr,
   box-shadow: var(--shadow-glow-lime);
 }
 
-/* Вторичный акцент (Фиолетовый неон) */
 .btn--secondary,
 .btn--violet {
   background: var(--accent-violet);
@@ -738,7 +710,6 @@ hr,
   box-shadow: var(--shadow-glow-violet);
 }
 
-/* Призрачная / поверхностная кнопка */
 .btn--ghost {
   background: var(--bg-surface);
   color: var(--text-primary);
@@ -750,7 +721,6 @@ hr,
   background: var(--bg-elevated);
 }
 
-/* Контурная кнопка */
 .btn--outline {
   background: transparent;
   color: var(--accent-lime);
@@ -761,7 +731,6 @@ hr,
   background: var(--accent-lime-soft);
 }
 
-/* Семантические кнопки (успех, опасное действие / бан / жалоба, предупреждение) */
 .btn--success {
   background: var(--accent-like-soft);
   color: var(--accent-like);
@@ -795,34 +764,11 @@ hr,
   color: #0b0e14;
 }
 
-/* Размеры кнопок */
-.btn--xs {
-  padding: 5px 10px;
-  font-size: 0.74rem;
-  gap: 5px;
-}
-
-.btn--sm {
-  padding: 7px 13px;
-  font-size: 0.78rem;
-  gap: 6px;
-}
-
-.btn--lg {
-  padding: 13px 24px;
-  font-size: 0.96rem;
-}
-
-.btn--icon {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border-radius: var(--radius-full);
-}
-
-.btn--block {
-  width: 100%;
-}
+.btn--xs   { padding: 5px 10px; font-size: 0.74rem; gap: 5px; }
+.btn--sm   { padding: 7px 13px; font-size: 0.78rem; gap: 6px; }
+.btn--lg   { padding: 13px 24px; font-size: 0.96rem; }
+.btn--icon { width: 38px; height: 38px; padding: 0; border-radius: var(--radius-full); }
+.btn--block { width: 100%; }
 
 .btn-group {
   display: inline-flex;
@@ -831,7 +777,6 @@ hr,
   gap: 8px;
 }
 
-/* Состояние загрузки на кнопке */
 .btn.is-loading {
   pointer-events: none;
   opacity: 0.8;
@@ -852,7 +797,7 @@ hr,
 }
 
 /* --------------------------------------------------------------------------
-   6. ФОРМЫ, КОНТРОЛЫ И СОСТОЯНИЯ ВАЛИДАЦИИ
+   6. ФОРМЫ, СЕЛЕКТЫ И СОСТОЯНИЯ ВАЛИДАЦИИ
    -------------------------------------------------------------------------- */
 .form-group {
   display: flex;
@@ -889,7 +834,7 @@ hr,
   font-size: 0.88rem;
   line-height: 1.4;
   outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .form-control::placeholder {
@@ -905,37 +850,18 @@ hr,
   box-shadow: var(--ring-focus);
 }
 
-.form-control:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
 textarea.form-control {
   resize: vertical;
   min-height: 86px;
 }
 
-.form-control.is-invalid {
-  border-color: var(--accent-skip);
-}
-
-.form-control.is-valid {
-  border-color: var(--accent-like);
-}
-
-.form-hint {
-  font-size: var(--fs-xs);
-  color: var(--text-muted);
-}
-
-.form-error {
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  color: var(--accent-skip);
-}
+.form-control.is-invalid { border-color: var(--accent-skip); }
+.form-control.is-valid   { border-color: var(--accent-like); }
+.form-hint  { font-size: var(--fs-xs); color: var(--text-muted); }
+.form-error { font-size: var(--fs-xs); font-weight: 600; color: var(--accent-skip); }
 
 /* --------------------------------------------------------------------------
-   7. УНИВЕРСАЛЬНЫЕ КАРТОЧКИ, ТАБЛИЦЫ, ВКЛАДКИ И БЕЙДЖИ БД
+   7. КАРТОЧКИ, ТАБЛИЦЫ, ВКЛАДКИ, БЕЙДЖИ И TRUST FACTOR
    -------------------------------------------------------------------------- */
 .mp-card {
   background: var(--bg-surface);
@@ -970,7 +896,6 @@ textarea.form-control {
   gap: 10px;
 }
 
-/* Таблицы данных (для очереди жалоб reports, списка юзеров и справочников) */
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -1012,7 +937,6 @@ textarea.form-control {
   background: var(--bg-elevated);
 }
 
-/* Горизонтальные табы страниц */
 .tabs {
   display: inline-flex;
   flex-wrap: wrap;
@@ -1037,7 +961,7 @@ textarea.form-control {
   color: var(--text-inverse);
 }
 
-/* Бейджи категорий, ролей, статусов и Trust Factor */
+/* Бейджи категорий (esports / it / hackathon / team) */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -1052,26 +976,27 @@ textarea.form-control {
 .badge--esports {
   background: var(--accent-violet-soft);
   color: #b59dff;
-  border: 1px solid rgba(124, 92, 255, 0.32);
+  border: 1px solid rgba(124, 92, 255, 0.34);
 }
 
 [data-theme="light"] .badge--esports {
   color: var(--accent-violet);
 }
 
-.badge--it {
+.badge--it,
+.badge--hackathon {
   background: var(--accent-super-soft);
   color: var(--accent-super);
-  border: 1px solid rgba(56, 189, 248, 0.32);
+  border: 1px solid rgba(56, 189, 248, 0.34);
 }
 
 .badge--team {
   background: var(--accent-warn-soft);
   color: var(--accent-warn);
-  border: 1px solid rgba(255, 176, 32, 0.32);
+  border: 1px solid rgba(255, 176, 32, 0.34);
 }
 
-/* Статусы аккаунта users.status и заявок team_members.status */
+/* Статусы БД: users.status, team_members.status, reports.status, events.status */
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -1084,25 +1009,28 @@ textarea.form-control {
 
 .status-pill--active,
 .status-pill--accepted,
-.status-pill--resolved {
+.status-pill--resolved,
+.status-pill--confirmed {
   background: var(--accent-like-soft);
   color: var(--accent-like);
 }
 
 .status-pill--muted,
 .status-pill--pending,
-.status-pill--open {
+.status-pill--open,
+.status-pill--disputed {
   background: var(--accent-warn-soft);
   color: var(--accent-warn);
 }
 
 .status-pill--banned,
-.status-pill--kicked {
+.status-pill--kicked,
+.status-pill--cancelled {
   background: var(--accent-skip-soft);
   color: var(--accent-skip);
 }
 
-/* Индикаторы репутации profiles.trust_score (1.00 – 5.00) */
+/* Репутация profiles.trust_score NUMERIC(3,2) */
 .trust-badge {
   display: inline-flex;
   align-items: center;
@@ -1116,16 +1044,19 @@ textarea.form-control {
 .trust-badge--high {
   background: var(--accent-like-soft);
   color: var(--accent-like);
+  border: 1px solid rgba(46, 229, 125, 0.28);
 }
 
 .trust-badge--mid {
   background: var(--accent-warn-soft);
   color: var(--accent-warn);
+  border: 1px solid rgba(255, 176, 32, 0.28);
 }
 
 .trust-badge--low {
   background: var(--accent-skip-soft);
   color: var(--accent-skip);
+  border: 1px solid rgba(255, 77, 109, 0.34);
 }
 
 /* --------------------------------------------------------------------------
@@ -1162,7 +1093,7 @@ textarea.form-control {
   animation: scaleUp 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
-.modal--sm { max-width: 400px; }
+.modal--sm { max-width: 410px; }
 .modal--lg { max-width: 680px; }
 .modal--xl { max-width: 860px; }
 
@@ -1223,15 +1154,14 @@ textarea.form-control {
 
 @keyframes fadeIn {
   from { opacity: 0; }
-  to { opacity: 1; }
+  to   { opacity: 1; }
 }
 
 @keyframes scaleUp {
   from { opacity: 0; transform: scale(0.94) translateY(10px); }
-  to { opacity: 1; transform: scale(1) translateY(0); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* Всплывающие тост-уведомления */
 .toast-container {
   position: fixed;
   bottom: 22px;
@@ -1259,17 +1189,16 @@ textarea.form-control {
 
 @keyframes toastIn {
   from { opacity: 0; transform: translateX(24px); }
-  to { opacity: 1; transform: translateX(0); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
 /* --------------------------------------------------------------------------
-   9. КОМПОНЕНТЫ ГЛАВНОГО ЭКРАНА СВАЙПОВ, ФИЛЬТРОВ, МЭТЧЕЙ И ЛОББИ-ЧАТА
+   9. ГЛАВНЫЙ ЭКРАН СВАЙПОВ, ФИЛЬТРОВ, ВЗАИМНЫХ МЭТЧЕЙ И ЛОББИ-ЧАТА
    -------------------------------------------------------------------------- */
 .swipe-workspace {
   padding: 22px 0 48px;
 }
 
-/* Переключатель секций для мобильных экранов (на десктопе скрыт) */
 .mobile-view-tabs {
   display: none;
   gap: 6px;
@@ -1296,7 +1225,7 @@ textarea.form-control {
   color: var(--text-inverse);
 }
 
-/* Основная сетка страницы свайпов (Desktop 3 колонки) */
+/* Трёхколоночная сетка свайпов */
 .swipe-layout {
   display: grid;
   grid-template-columns: 300px minmax(340px, 470px) 340px;
@@ -1329,7 +1258,6 @@ textarea.form-control {
   gap: 8px;
 }
 
-/* Сегментированный переключатель типа анкет */
 .segment-group {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1352,7 +1280,7 @@ textarea.form-control {
 .segment-btn.is-active {
   background: var(--bg-elevated);
   color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
 }
 
 .storage-hint {
@@ -1366,12 +1294,7 @@ textarea.form-control {
   line-height: 1.45;
 }
 
-.storage-hint code {
-  color: var(--accent-lime);
-  font-weight: 700;
-}
-
-/* --- ЦЕНТРАЛЬНАЯ КОЛОНКА СВАЙПОВ --- */
+/* Центральная колода свайпов */
 .deck-stage {
   display: flex;
   flex-direction: column;
@@ -1393,7 +1316,6 @@ textarea.form-control {
   color: var(--text-primary);
 }
 
-/* Контейнер стека карточек */
 .card-stack {
   position: relative;
   width: 100%;
@@ -1445,7 +1367,7 @@ textarea.form-control {
   transition: transform 0.34s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
 }
 
-/* Визуальные штампы LIKE / SKIP / SUPER при перетаскивании */
+/* Штампы ЛАЙК / ПРОПУСК при перетаскивании */
 .swipe-stamp {
   position: absolute;
   z-index: 10;
@@ -1464,7 +1386,7 @@ textarea.form-control {
   left: 22px;
   color: var(--accent-like);
   border: 3px solid var(--accent-like);
-  background: rgba(11, 14, 20, 0.72);
+  background: rgba(11, 14, 20, 0.78);
   transform: rotate(-14deg);
 }
 
@@ -1473,17 +1395,8 @@ textarea.form-control {
   right: 22px;
   color: var(--accent-skip);
   border: 3px solid var(--accent-skip);
-  background: rgba(11, 14, 20, 0.72);
+  background: rgba(11, 14, 20, 0.78);
   transform: rotate(14deg);
-}
-
-.swipe-stamp--super {
-  bottom: 110px;
-  left: 50%;
-  color: var(--accent-super);
-  border: 3px solid var(--accent-super);
-  background: rgba(11, 14, 20, 0.8);
-  transform: translateX(-50%) rotate(-4deg);
 }
 
 /* Шапка карточки */
@@ -1516,28 +1429,39 @@ textarea.form-control {
   border-radius: 18px;
   display: grid;
   place-items: center;
-  font-size: 1.65rem;
+  font-size: 1.55rem;
   font-weight: 900;
-  background: rgba(11, 14, 20, 0.55);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(11, 14, 20, 0.58);
+  border: 2px solid rgba(255, 255, 255, 0.42);
   backdrop-filter: blur(8px);
+  overflow: hidden;
   flex-shrink: 0;
+}
+
+.card-avatar img,
+.match-item__avatar img,
+.match-pair__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #ffffff;
 }
 
 .card-identity h2 {
   font-size: 1.32rem;
   font-weight: 900;
   line-height: 1.15;
+  color: #ffffff;
   text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
 }
 
 .card-identity p {
   font-size: 0.84rem;
-  opacity: 0.9;
+  opacity: 0.92;
   font-weight: 600;
 }
 
-/* Тело карточки */
+/* Контент карточки */
 .card-content {
   padding: 18px;
   flex: 1;
@@ -1549,7 +1473,7 @@ textarea.form-control {
 
 .card-metrics {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -1562,7 +1486,7 @@ textarea.form-control {
 
 .metric-box span {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-muted);
@@ -1570,9 +1494,13 @@ textarea.form-control {
 }
 
 .metric-box b {
-  font-size: 0.85rem;
+  display: block;
+  font-size: 0.82rem;
   font-weight: 800;
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .card-bio {
@@ -1605,6 +1533,7 @@ textarea.form-control {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding-top: 10px;
   border-top: 1px solid var(--border-subtle);
   font-size: 0.76rem;
@@ -1613,20 +1542,8 @@ textarea.form-control {
 
 .ext-profiles {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-}
-
-.ctrl-btn--report {
-  width: 46px;
-  height: 46px;
-  font-size: 1.05rem;
-  color: var(--accent-warn);
-  border-color: rgba(255, 176, 32, 0.35);
-}
-
-.ctrl-btn--report:hover {
-  background: var(--accent-warn);
-  color: #0b0e14;
 }
 
 .ext-pill {
@@ -1644,19 +1561,6 @@ textarea.form-control {
   color: var(--text-primary);
 }
 
-.role-switcher-select {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  border-radius: var(--radius-full);
-  padding: 6px 12px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  outline: none;
-  cursor: pointer;
-}
-
-/* Пустое состояние колоды */
 .deck-empty {
   height: 100%;
   background: var(--bg-surface);
@@ -1675,7 +1579,7 @@ textarea.form-control {
   font-size: 3.2rem;
 }
 
-/* Кнопки свайпов */
+/* Кнопки управления свайпами */
 .swipe-controls {
   display: flex;
   align-items: center;
@@ -1690,7 +1594,7 @@ textarea.form-control {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  transition: transform var(--transition-fast), border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .ctrl-btn:hover {
@@ -1708,6 +1612,19 @@ textarea.form-control {
   color: var(--text-secondary);
 }
 
+.ctrl-btn--report {
+  width: 46px;
+  height: 46px;
+  font-size: 1.05rem;
+  color: var(--accent-warn);
+  border-color: rgba(255, 176, 32, 0.35);
+}
+
+.ctrl-btn--report:hover {
+  background: var(--accent-warn);
+  color: #0b0e14;
+}
+
 .ctrl-btn--skip {
   width: 60px;
   height: 60px;
@@ -1719,19 +1636,6 @@ textarea.form-control {
 .ctrl-btn--skip:hover {
   background: var(--accent-skip);
   color: #ffffff;
-}
-
-.ctrl-btn--super {
-  width: 50px;
-  height: 50px;
-  font-size: 1.2rem;
-  color: var(--accent-super);
-  border-color: rgba(56, 189, 248, 0.38);
-}
-
-.ctrl-btn--super:hover {
-  background: var(--accent-super);
-  color: #0b0e14;
 }
 
 .ctrl-btn--like {
@@ -1753,16 +1657,7 @@ textarea.form-control {
   text-align: center;
 }
 
-.hotkeys-hint kbd {
-  padding: 2px 6px;
-  border-radius: 5px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-/* --- ПРАВАЯ КОЛОНКА: МЭТЧИ И ИСТОРИЯ СЕССИИ --- */
+/* Правая панель: взаимные мэтчи и история сессии */
 .right-tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1808,7 +1703,8 @@ textarea.form-control {
   display: grid;
   place-items: center;
   font-weight: 900;
-  color: #fff;
+  color: #ffffff;
+  overflow: hidden;
   flex-shrink: 0;
 }
 
@@ -1826,7 +1722,7 @@ textarea.form-control {
 }
 
 .match-item__info span {
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   color: var(--text-secondary);
 }
 
@@ -1844,6 +1740,7 @@ textarea.form-control {
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
 }
 
 .contact-tag:hover {
@@ -1863,7 +1760,7 @@ textarea.form-control {
   font-size: 0.8rem;
 }
 
-/* --- МОДАЛКА «IT'S A MATCH!» --- */
+/* Модалка «It's a Match!» */
 .match-celebration {
   text-align: center;
   padding: 10px 4px;
@@ -1905,9 +1802,10 @@ textarea.form-control {
   place-items: center;
   font-size: 1.8rem;
   font-weight: 900;
-  color: #fff;
+  color: #ffffff;
   border: 3px solid var(--accent-lime);
   box-shadow: 0 0 28px rgba(184, 255, 59, 0.35);
+  overflow: hidden;
 }
 
 .match-pair__bolt {
@@ -1917,10 +1815,10 @@ textarea.form-control {
 
 @keyframes pulseBolt {
   from { transform: scale(0.9); }
-  to { transform: scale(1.2); }
+  to   { transform: scale(1.2); }
 }
 
-/* --- ЛОББИ-ЧАТ --- */
+/* Лобби-чат и авторизационные табы */
 .chat-messages {
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
@@ -1958,4 +1856,21 @@ textarea.form-control {
 .chat-form {
   display: flex;
   gap: 8px;
+}
+
+.demo-accounts-box {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.demo-accounts-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
 }

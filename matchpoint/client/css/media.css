@@ -1,8 +1,8 @@
 /* ==========================================================================
    MatchPoint — Адаптивная вёрстка @media (client/css/media.css)
    Зона ответственности: Фронтенд-ядро (Карулис Иван)
-   Обеспечивает корректное отображение ВСЕХ страниц проекта
-   (index, events, teams, profile, admin, auth) на:
+   Обеспечивает корректное отображение всех страниц проекта
+   (index.html, events.html, teams.html, profile.html, admin.html) на:
    - Широких экранах и десктопах (1024px+)
    - Планшетах (768px–1023px)
    - Смартфонах (360px–767px)
@@ -26,7 +26,6 @@
    2. ДЕСКТОПЫ И НОУТБУКИ (1024px+)
    -------------------------------------------------------------------------- */
 @media (min-width: 1024px) {
-  /* На десктопах бургер-меню, мобильная шторка и мобильные табы скрыты */
   .burger-btn,
   .mobile-drawer,
   .mobile-drawer-backdrop,
@@ -38,12 +37,16 @@
 /* Компактные ноутбуки (1024px–1279px) */
 @media (min-width: 1024px) and (max-width: 1279px) {
   .nav-link {
-    padding: 7px 11px;
-    font-size: 0.82rem;
+    padding: 7px 10px;
+    font-size: 0.81rem;
   }
 
   .header-actions {
-    gap: 8px;
+    gap: 6px;
+  }
+
+  .role-switcher-select {
+    max-width: 175px;
   }
 
   .grid-4 {
@@ -78,7 +81,6 @@
     padding: 0 18px;
   }
 
-  /* Переключаем основную навигацию в адаптивное бургер-меню */
   .main-nav {
     display: none;
   }
@@ -87,7 +89,6 @@
     display: inline-flex;
   }
 
-  /* Общие сетки страниц (events, teams, profile, admin) */
   .page-shell {
     padding: 22px 0 44px;
   }
@@ -98,11 +99,7 @@
     gap: 16px;
   }
 
-  .sidebar-layout {
-    grid-template-columns: 1fr;
-    gap: 18px;
-  }
-
+  .sidebar-layout,
   .split-layout {
     grid-template-columns: 1fr;
     gap: 18px;
@@ -112,7 +109,7 @@
     min-height: 360px;
   }
 
-  /* Страница свайпов на планшете: колода и мэтчи сверху, фильтры в 2 колонки снизу */
+  /* На планшете колода и мэтчи сверху, фильтры в 2 колонки снизу */
   .swipe-layout {
     grid-template-columns: 1fr 1fr;
     gap: 18px;
@@ -150,7 +147,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   4. СМАРТФОНЫ (до 767px, включая базовый диапазон 360px–767px)
+   4. СМАРТФОНЫ (360px–767px и уже)
    -------------------------------------------------------------------------- */
 @media (max-width: 767px) {
   :root {
@@ -161,9 +158,7 @@
     padding: 0 14px;
   }
 
-  /* Шапка на смартфонах: логотип + тема + бургер; второстепенные экшены уходят в drawer */
   .main-nav,
-  .role-pill__label,
   .hide-on-mobile {
     display: none !important;
   }
@@ -180,7 +175,6 @@
     padding: 14px 16px 20px;
   }
 
-  /* Универсальные страницы и каркасы (events, teams, profile, admin, auth) */
   .page-shell {
     padding: 18px 0 38px;
   }
@@ -227,7 +221,7 @@
     border-radius: var(--radius-md);
   }
 
-  /* Таблицы (админка / модерация): компактные отступы и карточный режим .mp-table--stack */
+  /* Таблицы (админка / модерация) */
   .mp-table th,
   .mp-table td {
     padding: 10px 12px;
@@ -261,7 +255,6 @@
     color: var(--text-muted);
   }
 
-  /* Горизонтальная прокрутка вкладок без переноса */
   .tabs {
     width: 100%;
     flex-wrap: nowrap;
@@ -273,7 +266,7 @@
     text-align: center;
   }
 
-  /* Главный экран свайпов: переключение вкладок Свайпы / Фильтры / Мэтчи */
+  /* Свайпы на мобильных */
   .swipe-workspace {
     padding: 14px 0 32px;
   }
@@ -362,7 +355,7 @@
     display: none;
   }
 
-  /* Модальные окна в формате мобильного Bottom-Sheet */
+  /* Модалки в режиме Bottom-Sheet */
   .modal-overlay {
     align-items: end;
     padding: 0;
@@ -396,7 +389,6 @@
     width: 100%;
   }
 
-  /* Тосты во всю ширину нижнего края на смартфонах */
   .toast-container {
     left: 14px;
     right: 14px;
@@ -452,7 +444,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   6. СЕНСОРНЫЕ УСТРОЙСТВА И ДОСТУПНОСТЬ (A11Y)
+   6. СЕНСОРНЫЕ УСТРОЙСТВА И ДОСТУПНОСТЬ
    -------------------------------------------------------------------------- */
 @media (hover: none) and (pointer: coarse) {
   .btn:hover:not(:disabled),

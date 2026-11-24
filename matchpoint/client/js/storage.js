@@ -1,17 +1,14 @@
 /* ==========================================================================
    MatchPoint — Модуль клиентских хранилищ (client/js/storage.js)
    Зона ответственности: Фронтенд-ядро (Карулис Иван)
-   Назначение модуля:
+   Синхронизировано с 01_schema.sql, 02_seed.sql и server/routes/auth.js:
    1. localStorage:
-      - сохранение и проверка JWT-токена и данных сессии (users + profiles);
-      - сохранение и синхронизация темы оформления ('dark' / 'light');
-      - сохранение, валидация и сброс фильтров подбора (disciplines, roles, ranks,
-        prime_time, trust_score).
+      - JWT-токен (mp_auth_token + совместимость с ключом token) и сессия пользователя;
+      - тема оформления ('dark' / 'light');
+      - фильтры подбора анкет (disciplines, discipline_roles, ranks, prime_time, trust_score).
    2. sessionStorage:
-      - автосохранение, восстановление и очистка черновиков любых форм
-        (без сохранения полей type="password" и type="file");
-      - ведение истории просмотренных за текущую сессию карточек свайпов
-        (swipes.is_like) с поддержкой возврата последнего свайпа (Undo).
+      - черновики форм (исключая поля password и file);
+      - история просмотренных за текущую сессию карточек свайпов с отменой (Undo).
    ========================================================================== */
 
 (function (global) {
@@ -19,16 +16,18 @@
 
   const KEYS = Object.freeze({
     TOKEN: "mp_auth_token",
+    LEGACY_TOKEN: "token",
     USER: "mp_current_user",
+    LEGACY_USER: "user",
     THEME: "mp_theme",
-    FILTERS: "mp_swipe_filters_v2",
-    HISTORY: "mp_session_viewed_cards_v2",
+    FILTERS: "mp_swipe_filters_v3",
+    HISTORY: "mp_session_viewed_cards_v3",
     DRAFT_PREFIX: "mp_form_draft_"
   });
 
   const MAX_HISTORY_ITEMS = 50;
 
-  // Допустимые значения из CHECK-ограничений схемы БД
+  // Ограничения CHECK из 01_schema.sql
   const ALLOWED_ROLES = new Set([
     "guest",
     "player",
@@ -48,29 +47,28 @@
   const ALLOWED_CARD_TYPES = new Set(["all", "player", "team"]);
   const ALLOWED_CATEGORIES = new Set(["all", "esports", "it"]);
 
-  // Параметры фильтрации строго по полям таблиц БД и индекса idx_profile_disc_lookup
+  // Параметры фильтрации по индексу idx_profile_disc_lookup и полям profiles / teams
   const DEFAULT_FILTERS = Object.freeze({
-    card_type: "all",     // 'all' | 'player' (profiles) | 'team' (teams.looking_for_role_id)
-    category: "all",      // 'all' | 'esports' | 'it' (disciplines.category)
-    discipline_id: "",    // INTEGER REFERENCES disciplines(id)
-    role_id: "",          // INTEGER REFERENCES discipline_roles(id)
-    rank_id: "",          // INTEGER REFERENCES ranks(id)
+    card_type: "all",     // 'all' | 'player' | 'team'
+    category: "all",      // 'all' | 'esports' | 'it'
+    discipline_id: "",    // disciplines.id (1: CS2, 2: Dota 2, 3: Хакатон / IT)
+    role_id: "",          // discipline_roles.id (1..15)
+    rank_id: "",          // ranks.id (1..11)
     prime_time: "",       // profiles.prime_time
     min_trust: ""         // profiles.trust_score NUMERIC(3,2)
   });
 
-  // Демо-пользователь по структуре users JOIN profiles
+  // Базовый демо-пользователь из 02_seed.sql (id: 5 — ShadowStep, player@matchpoint.dev)
   const DEFAULT_USER = Object.freeze({
-    id: 2,
-    email: "ivan@matchpoint.by",
-    role: "captain",
+    id: 5,
+    email: "player@matchpoint.dev",
+    role: "player",
     status: "active",
-    nickname: "Karulis1",
-    avatar_url: null,
-    trust_score: 4.95
+    nickname: "ShadowStep",
+    avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=ShadowStep",
+    trust_score: 4.90
   });
 
-  // Резервное in-memory хранилище на случай блокировки Web Storage или переполнения квоты
   const memoryFallback = {
     localStorage: Object.create(null),
     sessionStorage: Object.create(null)
@@ -81,8 +79,7 @@
 
     function getNative() {
       try {
-        const store = global && global[storageName];
-        return store || null;
+        return (global && global[storageName]) || null;
       } catch (_) {
         return null;
       }
@@ -109,7 +106,6 @@
           store.setItem(key, str);
           return true;
         } catch (_) {
-          // Если переполнена квота sessionStorage — освобождаем старый хвост истории и пробуем ещё раз
           if (storageName === "sessionStorage" && key !== KEYS.HISTORY) {
             try {
               const rawHist = store.getItem(KEYS.HISTORY);
@@ -235,18 +231,20 @@
     DEFAULT_USER,
 
     // ========================================================================
-    // 1. ТОКЕН АВТОРИЗАЦИИ И СЕССИЯ ПОЛЬЗОВАТЕЛЯ (localStorage)
+    // 1. ТОКЕН И СЕССИЯ ПОЛЬЗОВАТЕЛЯ (localStorage)
     // ========================================================================
     getToken() {
-      return local.getItem(KEYS.TOKEN) || "";
+      return local.getItem(KEYS.TOKEN) || local.getItem(KEYS.LEGACY_TOKEN) || "";
     },
 
     setToken(token) {
       const clean = typeof token === "string" ? token.trim() : "";
       if (!clean) {
         local.removeItem(KEYS.TOKEN);
+        local.removeItem(KEYS.LEGACY_TOKEN);
       } else {
         local.setItem(KEYS.TOKEN, clean);
+        local.setItem(KEYS.LEGACY_TOKEN, clean);
       }
       emitEvent("mp:auth-change", { hasToken: Boolean(clean) });
       return clean;
@@ -261,7 +259,6 @@
       if (!token) return true;
       const parts = token.split(".");
       if (parts.length !== 3 || typeof global.atob !== "function") {
-        // Короткий/демо-токен без секции exp считаем валидным в рамках учебного стенда
         return false;
       }
       try {
@@ -284,15 +281,21 @@
     },
 
     getUser() {
-      const saved = readJSON(local, KEYS.USER, null);
+      const saved = readJSON(local, KEYS.USER, null) || readJSON(local, KEYS.LEGACY_USER, null);
       return sanitizeUser(saved || DEFAULT_USER);
     },
 
     setUser(partialUser) {
       const merged = sanitizeUser({ ...this.getUser(), ...(partialUser || {}) });
       writeJSON(local, KEYS.USER, merged);
+      writeJSON(local, KEYS.LEGACY_USER, merged);
       emitEvent("mp:user-change", { user: merged });
       return merged;
+    },
+
+    setAuthSession(token, user) {
+      this.setToken(token);
+      return this.setUser(user);
     },
 
     isAuthenticated() {
@@ -301,22 +304,23 @@
     },
 
     hasRole(...roles) {
-      const currentRole = this.getUser().role;
-      return roles.includes(currentRole);
+      return roles.includes(this.getUser().role);
     },
 
     clearAuth() {
       local.removeItem(KEYS.TOKEN);
+      local.removeItem(KEYS.LEGACY_TOKEN);
       const guest = sanitizeUser({
-        id: 0,
-        email: "",
+        id: 6,
+        email: "guest@matchpoint.dev",
         role: "guest",
         status: "active",
-        nickname: "Гость",
-        avatar_url: null,
+        nickname: "GuestDemo",
+        avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=GuestDemo",
         trust_score: 5.0
       });
       writeJSON(local, KEYS.USER, guest);
+      writeJSON(local, KEYS.LEGACY_USER, guest);
       emitEvent("mp:auth-change", { hasToken: false, user: guest });
       return guest;
     },
@@ -357,7 +361,7 @@
     },
 
     // ========================================================================
-    // 3. ФИЛЬТРЫ ПОДБОРА ТИММЕЙТОВ И КОМАНД (localStorage)
+    // 3. ФИЛЬТРЫ ПОДБОРА (localStorage)
     // ========================================================================
     getFilters() {
       const saved = readJSON(local, KEYS.FILTERS, null);
@@ -368,7 +372,6 @@
       const current = this.getFilters();
       const nextRaw = { ...current, ...(partialFilters || {}) };
 
-      // Если дисциплина изменена и явно не переданы новые role_id / rank_id — сбрасываем зависимые поля
       if (
         partialFilters &&
         Object.prototype.hasOwnProperty.call(partialFilters, "discipline_id") &&
@@ -438,12 +441,6 @@
         .forEach((k) => session.removeItem(k));
     },
 
-    /**
-     * Автоматически связывает HTML-форму с sessionStorage:
-     * - при инициализации восстанавливает значения всех именованных полей;
-     * - при вводе сохраняет снимок полей (исключая type="password" и type="file");
-     * - возвращает функцию отписки unbind().
-     */
     bindFormDraft(formEl, formKey, onRestore) {
       if (!formEl || !formKey) return () => {};
 
@@ -588,10 +585,8 @@
     }
   };
 
-  // Мгновенно применяем сохранённую тему к <html>, предотвращая мигание при загрузке страниц
   applyThemeToDocument(MPStorage.getTheme());
 
-  // Синхронизация темы и авторизации между вкладками браузера
   if (global && typeof global.addEventListener === "function") {
     global.addEventListener("storage", (event) => {
       if (!event) return;
