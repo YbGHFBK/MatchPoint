@@ -241,3 +241,184 @@ matchpoint/
 * Ветка разработки — `dev` (сюда сливаются готовые фичи через Pull Request).
 * Каждая задача делается в отдельной ветке: `feature/auth`, `feature/swipe-ui`, `feature/events-logic`, `feature/admin-panel`.
 * Понятные префиксы коммитов: `feat:` (новая фича), `fix:` (исправление), `style:` (верстка/CSS), `docs:` (документация).
+```mermaid
+erDiagram
+    users ||--|| profiles : "1:1 профиль"
+    users ||--o{ trust_ratings : "оценивает / получает"
+    users ||--o{ swipes : "свайпает / свайпают"
+    users ||--o{ matches : "участвует в мэтче"
+    users ||--o{ teams : "капитан"
+    users ||--o{ team_members : "состоит"
+    users ||--o{ events : "организует"
+    users |o--o{ event_registrations : "соло-заявка"
+    users ||--o{ reports : "жалоба / нарушитель / модер"
+
+    profiles ||--o{ profile_disciplines : "указывает игры/IT"
+
+    disciplines ||--o{ discipline_roles : "роли"
+    disciplines ||--o{ ranks : "ранги"
+    disciplines ||--o{ profile_disciplines : "дисциплина"
+    disciplines ||--o{ teams : "дисциплина"
+    disciplines ||--o{ events : "дисциплина"
+
+    discipline_roles |o--o{ profile_disciplines : "роль игрока"
+    discipline_roles |o--o{ teams : "ищет роль"
+    discipline_roles |o--o{ team_members : "роль в команде"
+
+    ranks |o--o{ profile_disciplines : "ранг игрока"
+
+    locations |o--o{ events : "площадка (LAN/офлайн)"
+
+    teams ||--o{ team_members : "участники"
+    teams |o--o{ event_registrations : "командная заявка"
+
+    events ||--o{ event_registrations : "регистрации"
+    events ||--o{ tournament_matches : "сетка матчей"
+
+    event_registrations |o--o{ tournament_matches : "участник / победитель"
+
+    users {
+        serial id PK
+        varchar email UK
+        varchar password_hash
+        varchar role
+        varchar status
+        timestamptz ban_until
+        timestamptz created_at
+    }
+
+    profiles {
+        int user_id PK,FK
+        varchar nickname UK
+        text avatar_url
+        varchar prime_time
+        text bio
+        jsonb contacts
+        jsonb external_links
+        numeric trust_score
+    }
+
+    trust_ratings {
+        serial id PK
+        int from_user_id FK
+        int to_user_id FK
+        smallint score
+        text comment
+        timestamptz created_at
+    }
+
+    disciplines {
+        serial id PK
+        varchar name UK
+        varchar category
+    }
+
+    discipline_roles {
+        serial id PK
+        int discipline_id FK
+        varchar name
+    }
+
+    ranks {
+        serial id PK
+        int discipline_id FK
+        varchar name
+        int sort_order
+    }
+
+    locations {
+        serial id PK
+        varchar city
+        varchar venue_name
+        text address
+        double lat
+        double lng
+        boolean is_verified
+    }
+
+    profile_disciplines {
+        serial id PK
+        int profile_id FK
+        int discipline_id FK
+        int role_id FK
+        int rank_id FK
+    }
+
+    swipes {
+        int from_user_id PK,FK
+        int to_user_id PK,FK
+        boolean is_like
+        timestamptz created_at
+    }
+
+    matches {
+        serial id PK
+        int user1_id FK
+        int user2_id FK
+        timestamptz created_at
+    }
+
+    teams {
+        serial id PK
+        int captain_id FK
+        int discipline_id FK
+        varchar name UK
+        text description
+        int looking_for_role_id FK
+        timestamptz created_at
+    }
+
+    team_members {
+        int team_id PK,FK
+        int user_id PK,FK
+        int role_id FK
+        varchar status
+        timestamptz joined_at
+    }
+
+    events {
+        serial id PK
+        int organizer_id FK
+        int discipline_id FK
+        int location_id FK
+        varchar event_type
+        varchar title
+        text description
+        timestamptz start_at
+        int max_participants
+        varchar status
+        jsonb details
+        timestamptz created_at
+    }
+
+    event_registrations {
+        serial id PK
+        int event_id FK
+        int user_id FK
+        int team_id FK
+        timestamptz registered_at
+    }
+
+    tournament_matches {
+        serial id PK
+        int event_id FK
+        int round
+        int participant1_id FK
+        int participant2_id FK
+        varchar score
+        text proof_url
+        varchar status
+        int winner_id FK
+    }
+
+    reports {
+        serial id PK
+        int reporter_id FK
+        int target_user_id FK
+        text reason
+        varchar status
+        int moderator_id FK
+        varchar action_taken
+        timestamptz created_at
+    }
+```
