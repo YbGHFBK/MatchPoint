@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatchPoint — Профиль и Trust Factor</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/media.css">
+  <style>
+    .profile-hero {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+    .profile-avatar-lg {
+      width: 88px;
+      height: 88px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid var(--border-strong);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .profile-avatar-lg img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .profile-meta {
+      flex: 1;
+      min-width: 220px;
+    }
+    .profile-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+    .trust-meter {
+      height: 10px;
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      overflow: hidden;
+      margin: 10px 0;
+      border: 1px solid var(--border-subtle);
+    }
+    .trust-meter__fill {
+      height: 100%;
+      border-radius: var(--radius-full);
+      transition: width 0.35s ease;
+    }
+    .trust-meter__fill--high { background: var(--accent-like); }
+    .trust-meter__fill--mid  { background: var(--accent-warn); }
+    .trust-meter__fill--low  { background: var(--accent-skip); }
+    .dist-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 28px;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+    .dist-bar {
+      height: 7px;
+      background: var(--bg-elevated);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    .dist-bar__fill {
+      height: 100%;
+      background: var(--accent-violet);
+      border-radius: var(--radius-full);
+    }
+    .disc-chip-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 8px;
+    }
+    .review-item {
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 10px;
+    }
+    .review-item__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+    .star-picker {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .star-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
+    .star-btn.is-active,
+    .star-btn:hover {
+      border-color: var(--accent-lime);
+      background: var(--accent-lime-soft);
+      color: var(--text-primary);
+    }
+    .profile-toolbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .ext-link-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-size: var(--fs-xs);
+    }
+    .ext-link-pill:hover {
+      border-color: var(--accent-violet);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= ШАПКА САЙТА ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand__mark">◈</span>
+        <span>Match<span class="brand__accent">Point</span></span>
+      </a>
+
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a href="index.html" class="nav-link">🔥 Свайпы</a>
+        <a href="events.html" class="nav-link">🏆 Ивенты</a>
+        <a href="teams.html" class="nav-link">👥 Команды</a>
+        <a href="profile.html" class="nav-link is-active">👤 Профиль</a>
+        <a href="admin.html" class="nav-link">🛡 Админ</a>
+      </nav>
+
+      <div class="header-actions">
+        <select class="role-switcher-select hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта">
+          <option value="5">ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
+        </select>
+
+        <button class="btn btn--ghost btn--sm hide-on-mobile" id="openAuthModalBtn" type="button">
+          👤 Аккаунт
+        </button>
+
+        <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="Сменить тему оформления">
+          ☀️
+        </button>
+
+        <button class="burger-btn" id="burgerBtn" type="button" aria-label="Открыть меню" aria-controls="mobileDrawer" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-drawer-backdrop" id="mobileBackdrop"></div>
+  <nav class="mobile-drawer" id="mobileDrawer" aria-label="Мобильная навигация">
+    <a href="index.html" class="nav-link">🔥 Поиск свайпами</a>
+    <a href="events.html" class="nav-link">🏆 Ивенты и Турниры</a>
+    <a href="teams.html" class="nav-link">👥 Команды</a>
+    <a href="profile.html" class="nav-link is-active">👤 Профиль и Trust Factor</a>
+    <a href="admin.html" class="nav-link">🛡 Модерация и Админ</a>
+
+    <div class="mobile-drawer__footer">
+      <div class="form-group" style="margin-bottom: 0;">
+        <label class="form-label" for="mobileRoleSwitcher">Аккаунт сессии (02_seed.sql)</label>
+        <select class="form-control" id="mobileRoleSwitcher">
+          <option value="5">ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
+        </select>
+      </div>
+      <button class="btn btn--ghost btn--sm btn--block" id="mobileOpenAuthBtn" type="button">
+        🔐 Вход / Регистрация
+      </button>
+    </div>
+  </nav>
+
+  <!-- ================= ОСНОВНОЙ КОНТЕНТ ================= -->
+  <main class="page-shell">
+    <div class="container">
+
+      <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;">
+        <div>
+          <h1 class="page-title" id="profilePageTitle">👤 Личный кабинет и Trust Factor</h1>
+          <p class="page-subtitle" id="profilePageSubtitle">
+            Редактируйте анкету, игровые и IT-дисциплины, внешние ссылки и отслеживайте репутацию.
+          </p>
+        </div>
+
+        <div class="profile-toolbar">
+          <select class="form-control" id="inspectProfileSelect" style="width:auto;min-width:210px;" aria-label="Просмотр профиля игрока">
+            <option value="me">Мой профиль (редактирование)</option>
+            <option value="9">ColdFlick (AWPer • 4.95)</option>
+            <option value="11">PixelCraft (Frontend • 4.75)</option>
+            <option value="4">KuroCap (Captain • 4.85)</option>
+            <option value="3">OrgCyber (Organizer • 4.90)</option>
+            <option value="13">TiltKing (Muted • 2.10)</option>
+          </select>
+          <button type="button" class="btn btn--ghost btn--sm" id="backToMyProfileBtn" style="display:none;">
+            ← К моему профилю
+          </button>
+        </div>
+      </div>
+
+      <!-- Карточка-шапка профиля -->
+      <section class="mp-card" style="margin-bottom:20px;">
+        <div class="profile-hero">
+          <div class="profile-avatar-lg" id="heroAvatar">MP</div>
+          <div class="profile-meta">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <h2 style="margin:0;font-size:var(--fs-xl);" id="heroNickname">Загрузка...</h2>
+              <span class="badge badge--team" id="heroRoleBadge">player</span>
+              <span class="status-pill status-pill--active" id="heroStatusPill">active</span>
+              <span class="badge badge--it" id="heroVerifiedBadge" style="display:none;">✓ Верифицированный организатор</span>
+            </div>
+            <p class="text-secondary text-sm" style="margin:6px 0 0;" id="heroBio">—</p>
+            <div class="profile-badges" id="heroExternalLinks"></div>
+          </div>
+          <div style="min-width:210px;text-align:right;">
+            <span class="trust-badge trust-badge--high" id="heroTrustBadge" style="font-size:1rem;padding:6px 14px;">
+              ★ 5.00
+            </span>
+            <div class="text-xs text-muted" style="margin-top:6px;" id="heroTrustMeta">
+              Высокий уровень доверия
+            </div>
+            <div id="publicProfileActions" style="margin-top:10px;display:none;gap:8px;justify-content:flex-end;flex-wrap:wrap;">
+              <button type="button" class="btn btn--danger btn--sm" id="openReportProfileBtn">
+                🚩 Пожаловаться
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="split-layout">
+
+        <!-- ЛЕВАЯ КОЛОНКА: РЕДАКТИРОВАНИЕ ПРОФИЛЯ ИЛИ ПУБЛИЧНАЯ АНКЕТА -->
+        <div style="display:flex;flex-direction:column;gap:20px;">
+
+          <!-- Блок редактирования анкеты (только свой профиль) -->
+          <section class="mp-card" id="editProfileSection">
+            <div class="mp-card__header">
+              <div>
+                <h2 class="section-title" style="margin:0;">✏️ Редактирование анкеты</h2>
+                <p class="text-xs text-muted" style="margin:4px 0 0;">
+                  Черновик формы автоматически сохраняется в <code>sessionStorage</code>.
+                </p>
+              </div>
+              <button type="button" class="btn btn--ghost btn--xs" id="clearProfileDraftBtn">
+                Очистить черновик
+              </button>
+            </div>
+
+            <form id="profileEditForm" novalidate>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="profNickname">Никнейм *</label>
+                  <input class="form-control" id="profNickname" name="nickname" required minlength="2" maxlength="100" placeholder="Ваш игровой или IT-ник">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="profPrimeTime">Прайм-тайм</label>
+                  <input class="form-control" id="profPrimeTime" name="prime_time" placeholder="Например: 20:00-01:00">
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="profAvatarUrl">Ссылка на аватар (URL)</label>
+                <input class="form-control" id="profAvatarUrl" name="avatar_url" type="url" placeholder="https://api.dicebear.com/9.x/identicon/svg?seed=Nick">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label" for="profBio">О себе (игры, стек, цели)</label>
+                <textarea class="form-control" id="profBio" name="bio" rows="3" placeholder="Расскажите о стиле игры, опыте в проектах и кого ищете..."></textarea>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="profDiscord">Discord (открывается после Match)</label>
+                  <input class="form-control" id="profDiscord" name="discord" placeholder="nickname#0001">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="profTelegram">Telegram (открывается после Match)</label>
+                  <input class="form-control" id="profTelegram" name="telegram" placeholder="@username">
+                </div>
+              </div>
+
+              <h3 class="text-sm" style="margin:12px 0 10px;color:var(--text-secondary);">
+                🔗 Интеграции и внешние профили (валидация доменов)
+              </h3>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="profSteam">Steam</label>
+                  <input class="form-control" id="profSteam" name="steam" type="url" placeholder="https://steamcommunity.com/id/...">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="profFaceit">Faceit</label>
+                  <input class="form-control" id="profFaceit" name="faceit" type="url" placeholder="https://www.faceit.com/en/players/...">
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label" for="profGithub">GitHub</label>
+                  <input class="form-control" id="profGithub" name="github" type="url" placeholder="https://github.com/username">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="profGitlab">GitLab</label>
+                  <input class="form-control" id="profGitlab" name="gitlab" type="url" placeholder="https://gitlab.com/username">
+                </div>
+              </div>
+
+              <div class="form-error" id="profileFormError" style="margin-bottom:10px;display:none;"></div>
+
+              <div class="mp-card__footer" style="padding-top:12px;">
+                <span class="text-xs text-muted" id="profileSaveHint">PUT /api/profile/me</span>
+                <button type="submit" class="btn btn--primary" id="saveProfileBtn">💾 Сохранить профиль</button>
+              </div>
+            </form>
+          </section>
+
+          <!-- Дисциплины, роли и ранги -->
+          <section class="mp-card">
+            <div class="mp-card__header">
+              <div>
+                <h2 class="section-title" style="margin:0;">🎮 Дисциплины, роли и ранги</h2>
+                <p class="text-xs text-muted" style="margin:4px 0 0;">
+                  Используются для фильтрации анкеты в ленте свайпов.
+                </p>
+              </div>
+            </div>
+
+            <div id="profileDisciplinesList" style="margin-bottom:14px;"></div>
+
+            <form id="addDisciplineForm" class="form-row" style="align-items:flex-end;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="discSelect">Дисциплина</label>
+                <select class="form-control" id="discSelect" required></select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="discRoleSelect">Роль</label>
+                <select class="form-control" id="discRoleSelect"></select>
+              </div>
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label" for="discRankSelect">Ранг / Грейд</label>
+                <select class="form-control" id="discRankSelect"></select>
+              </div>
+              <button type="submit" class="btn btn--secondary btn--sm" style="height:40px;">+ Сохранить</button>
+            </form>
+          </section>
+
+          <!-- Оценка тиммейтов после мэтча (только в личном кабинете) -->
+          <section class="mp-card" id="teammatesRateSection">
+            <div class="mp-card__header">
+              <div>
+                <h2 class="section-title" style="margin:0;">🤝 Оценить тиммейтов (Trust Factor)</h2>
+                <p class="text-xs text-muted" style="margin:4px 0 0;">
+                  Оцените порядочность и коммуникацию игроков из ваших мэтчей и команд.
+                </p>
+              </div>
+            </div>
+            <div id="teammatesList"></div>
+          </section>
+
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: TRUST FACTOR, ОЦЕНКА И ОТЗЫВЫ -->
+        <aside style="display:flex;flex-direction:column;gap:20px;">
+
+          <!-- Карточка Trust Factor -->
+          <section class="mp-card">
+            <div class="mp-card__header">
+              <h2 class="section-title" style="margin:0;">🛡 Trust Factor</h2>
+              <span class="trust-badge trust-badge--high" id="trustCardScore">★ 5.00</span>
+            </div>
+
+            <div class="trust-meter">
+              <div class="trust-meter__fill trust-meter__fill--high" id="trustMeterFill" style="width:100%;"></div>
+            </div>
+            <p class="text-xs text-secondary" id="trustCardSummary" style="margin:0 0 14px;">
+              Рассчитывается на основе оценок тиммейтов (от 1 до 5).
+            </p>
+
+            <div id="trustDistribution"></div>
+          </section>
+
+          <!-- Форма оценки (при просмотре чужого профиля) -->
+          <section class="mp-card" id="ratePublicProfileCard" style="display:none;">
+            <div class="mp-card__header">
+              <h2 class="section-title" style="margin:0;">⭐ Оценить игрока</h2>
+            </div>
+            <form id="rateProfileForm">
+              <div class="form-group">
+                <span class="form-label">Оценка порядочности (1–5)</span>
+                <div class="star-picker" id="starPicker">
+                  <button type="button" class="star-btn" data-score="1">1</button>
+                  <button type="button" class="star-btn" data-score="2">2</button>
+                  <button type="button" class="star-btn" data-score="3">3</button>
+                  <button type="button" class="star-btn" data-score="4">4</button>
+                  <button type="button" class="star-btn is-active" data-score="5">5</button>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="rateComment">Комментарий</label>
+                <textarea class="form-control" id="rateComment" rows="2" placeholder="Спокойная инфа, не тильтует, пунктуальный..."></textarea>
+              </div>
+              <button type="submit" class="btn btn--primary btn--block">Отправить оценку</button>
+            </form>
+          </section>
+
+          <!-- Отзывы -->
+          <section class="mp-card">
+            <div class="mp-card__header">
+              <h2 class="section-title" style="margin:0;">💬 Отзывы (<span id="reviewsCount">0</span>)</h2>
+            </div>
+            <div id="reviewsList"></div>
+          </section>
+
+        </aside>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= МОДАЛКА ЖАЛОБЫ ================= -->
+  <div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+    <div class="modal modal--sm">
+      <button type="button" class="modal__close" data-close-modal="reportModal" aria-label="Закрыть">✕</button>
+      <div class="modal__header">
+        <h3 class="modal__title" id="reportModalTitle">🚩 Отправить жалобу</h3>
+        <p class="modal__subtitle">Профиль: <b id="reportTargetLabel">—</b></p>
+      </div>
+      <form id="reportForm">
+        <div class="form-group">
+          <label class="form-label" for="reportReason">Причина жалобы *</label>
+          <textarea class="form-control" id="reportReason" rows="3" required minlength="5" placeholder="Опишите нарушение (токсичность, фейковый ранг, спам)..."></textarea>
+        </div>
+        <button type="submit" class="btn btn--danger btn--block">Отправить модераторам</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= МОДАЛКА АВТОРИЗАЦИИ ================= -->
+  <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal modal--sm">
+      <button type="button" class="modal__close" data-close-modal="authModal" aria-label="Закрыть">✕</button>
+      <div class="modal__header">
+        <h3 class="modal__title" id="authModalTitle">🔐 Аккаунт MatchPoint</h3>
+        <p class="modal__subtitle">Вход или регистрация через <code>/api/auth</code></p>
+      </div>
+      <div class="right-tabs" style="margin-bottom:14px;">
+        <button type="button" class="segment-btn is-active" data-auth-tab="login">Вход</button>
+        <button type="button" class="segment-btn" data-auth-tab="register">Регистрация</button>
+      </div>
+      <form id="authForm">
+        <div class="form-group" id="authNicknameGroup" style="display:none;">
+          <label class="form-label" for="authNickname">Никнейм</label>
+          <input class="form-control" id="authNickname" type="text" placeholder="Ваш игровой ник">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="authEmail">Email</label>
+          <input class="form-control" id="authEmail" type="email" value="player@matchpoint.dev" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="authPassword">Пароль</label>
+          <input class="form-control" id="authPassword" type="password" value="password" required>
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" id="authSubmitBtn">Войти в аккаунт</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/profile.js"></script>
+</body>
+</html>
