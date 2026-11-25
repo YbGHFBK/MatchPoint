@@ -7,7 +7,12 @@ const db = require('./db/database');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const swipesRoutes = require('./routes/swipes');
+<<<<<<< HEAD
 const { adminRouter, reportsRouter, fetchAllDictionaries } = require('./routes/admin');
+=======
+const teamsRoutes = require('./routes/teams');
+
+>>>>>>> origin/main
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,8 +42,12 @@ app.get('/api/dictionaries', async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/swipes', swipesRoutes);
+<<<<<<< HEAD
 app.use('/api/reports', reportsRouter);
 app.use('/api/admin', adminRouter);
+=======
+app.use('/api/teams', teamsRoutes);
+>>>>>>> origin/main
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint не найден' });
