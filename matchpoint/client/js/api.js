@@ -1,4 +1,3 @@
-
 /* ==========================================================================
    MatchPoint — Клиентский API-модуль (client/js/api.js)
    Зона ответственности: Фронтенд-ядро (Карулис Иван)
@@ -622,38 +621,6 @@
         external_links: acc.external_links || {},
         greeting: `Привет от @${acc.nickname}! Отличный мэтч, спишемся и пойдём в лобби?`
       }
-    };
-  }
-
-  // --- Нормализация формата живого бэкенда (server/routes/swipes.js) ---
-  // Сервер отдаёт пользователя с массивом disciplines: [...], а swipe.js ждёт
-  // плоский объект partner (partner.user_id, partner.discipline_name, partner.role_name...).
-  function normalizeServerUserToPartner(user) {
-    const pds = Array.isArray(user.disciplines) ? user.disciplines : [];
-    const pd = pds[0] || {};
-    return {
-      user_id: user.id,
-      nickname: user.nickname || `User #${user.id}`,
-      avatar_url: user.avatar_url || null,
-      gradient: GRADIENTS[Number(user.id) % GRADIENTS.length],
-      prime_time: user.prime_time || "",
-      bio: user.bio || "",
-      trust_score: Number(user.trust_score ?? 5),
-      discipline_name: pd.discipline_name || "",
-      role_name: pd.role_name || "",
-      rank_name: pd.rank_name || "",
-      contacts: user.contacts || {},
-      external_links: user.external_links || {},
-      greeting: `Привет от @${user.nickname || "тиммейта"}! Отличный мэтч, спишемся и пойдём в лобби?`
-    };
-  }
-
-  function normalizeServerMatch(rawMatch) {
-    if (!rawMatch) return null;
-    return {
-      match_id: rawMatch.match_id,
-      matched_at: rawMatch.matched_at,
-      partner: normalizeServerUserToPartner(rawMatch.user || {})
     };
   }
 
@@ -1321,9 +1288,6 @@
           .filter((user) => !filters.prime_time || (user.prime_time || "").includes(filters.prime_time))
           .map((user) => {
             const pds = Array.isArray(user.disciplines) ? user.disciplines : [];
-            // Живой бэкенд (GET /api/swipes/feed) прикрепляет team капитанам с открытой
-            // вакансией — маппим их в командные карточки, иначе вкладки
-            // «Команды игроков» / «Команды разрабов» на реальной БД будут пустыми.
             if (user.team && user.team.looking_for_role_id) {
               const t = user.team;
               const capRank = pds.find((x) => Number(x.discipline_id) === Number(t.discipline_id)) || pds[0] || {};
@@ -1383,22 +1347,10 @@
       };
 
       try {
-        const res = await tryEndpoints([
+        return await tryEndpoints([
           () => this.post("/api/swipes", payload),
           () => this.post("/api/swipe", payload)
         ]);
-        // Живой бэкенд отвечает { swiped, is_like, is_match, match: { match_id, matched_at, user } },
-        // а swipe.js проверяет res.matched и читает res.match.partner — нормализуем.
-        if (res && typeof res === "object" && "is_match" in res) {
-          return {
-            swiped: Boolean(res.swiped),
-            is_like: Boolean(res.is_like),
-            matched: Boolean(res.is_match),
-            match: res.is_match ? normalizeServerMatch(res.match) : null,
-            source: "server"
-          };
-        }
-        return res;
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
 
@@ -1476,19 +1428,10 @@
     // --- Список взаимных мэтчей (matches + раскрытый profiles.contacts) ---
     async getMatches() {
       try {
-        const res = await tryEndpoints([
+        return await tryEndpoints([
           () => this.get("/api/swipes/matches"),
           () => this.get("/api/matches")
         ]);
-        // Живой бэкенд: { matches: [{ match_id, matched_at, user }] } -> приводим к { partner: ... }
-        if (res && Array.isArray(res.matches)) {
-          return {
-            ...res,
-            matches: res.matches.map((m) => (m && m.partner ? m : normalizeServerMatch(m))),
-            source: res.source || "server"
-          };
-        }
-        return res;
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
         const viewerId = global.MPStorage?.getUser()?.id || 5;
@@ -2085,4 +2028,3 @@
   });
   global.MPApi = MPApi;
 })(typeof window !== "undefined" ? window : globalThis);
-
