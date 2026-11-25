@@ -1,0 +1,614 @@
+:root {
+  --bg-void: #13111C;
+  --bg-panel: #1D1A2B;
+  --bg-card: #242038;
+  --bg-inset: #161422;
+  --bg-nav: #181524;
+  --border-dark: #322C4A;
+  --border-pixel: #463F66;
+  --border-bright: #7A70A8;
+  --text-main: #F4F1FF;
+  --text-dim: #9C94BD;
+  --text-muted: #6D6491;
+  --accent-gold: #FFD166;
+  --accent-mint: #06D6A0;
+  --accent-coral: #EF476F;
+  --accent-cyan: #4CC9F0;
+  --accent-violet: #A855F7;
+  --shadow-hard: #09080E;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  border-radius: 0px !important;
+}
+
+body.arcade-theme {
+  background-color: var(--bg-void);
+  background-image:
+    radial-gradient(#2B2640 1px, transparent 1px),
+    linear-gradient(to right, rgba(70, 63, 102, 0.12) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(70, 63, 102, 0.12) 1px, transparent 1px);
+  background-size: 24px 24px, 24px 24px, 24px 24px;
+  color: var(--text-main);
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+.font-pixel {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.04em;
+}
+
+.arcade-container {
+  max-width: 1260px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 18px;
+}
+
+/* ==================== ШАПКА (ARCADE HUD NAVBAR) ==================== */
+.arcade-header {
+  border-bottom: 4px solid var(--border-dark);
+  background-color: var(--bg-nav);
+  position: sticky;
+  top: 0;
+  z-index: 120;
+}
+
+.arcade-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.arcade-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text-main);
+}
+
+.arcade-brand__icon {
+  width: 38px;
+  height: 38px;
+  background: var(--bg-card);
+  border: 2px solid var(--accent-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 2px 2px 0px var(--shadow-hard);
+  flex-shrink: 0;
+}
+
+.arcade-brand__title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.82rem;
+  color: var(--accent-gold);
+}
+
+.arcade-brand__sub {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.arcade-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.arcade-nav__link {
+  padding: 8px 12px;
+  border: 2px solid transparent;
+  color: var(--text-dim);
+  text-decoration: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.1s, border-color 0.1s, color 0.1s;
+}
+
+.arcade-nav__link:hover {
+  color: #FFFFFF;
+  border-color: var(--border-pixel);
+  background: rgba(42, 37, 61, 0.55);
+}
+
+.arcade-nav__link.is-active {
+  background: #2A253D;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.arcade-hud-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==================== ПИКСЕЛЬНЫЕ КОНТЕЙНЕРЫ ==================== */
+.pixel-box {
+  background-color: var(--bg-panel);
+  border: 3px solid var(--border-pixel);
+  box-shadow:
+    inset 2px 2px 0px rgba(255, 255, 255, 0.07),
+    inset -2px -2px 0px rgba(0, 0, 0, 0.45),
+    4px 4px 0px var(--shadow-hard);
+  padding: 18px;
+  position: relative;
+}
+
+.pixel-box-gold {
+  background-color: var(--bg-card);
+  border: 3px solid var(--accent-gold);
+  box-shadow:
+    inset 2px 2px 0px rgba(255, 209, 102, 0.18),
+    inset -2px -2px 0px rgba(0, 0, 0, 0.55),
+    5px 5px 0px var(--shadow-hard);
+  padding: 18px;
+  position: relative;
+}
+
+.pixel-inset {
+  background-color: var(--bg-inset);
+  border: 2px solid var(--border-dark);
+  box-shadow: inset 2px 2px 0px #0B0A12;
+}
+
+.arena-scanlines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0, 0, 0, 0.16) 3px,
+    rgba(0, 0, 0, 0.16) 4px
+  );
+}
+
+/* ==================== ТАКТИЛЬНЫЕ АРКАДНЫЕ КНОПКИ ==================== */
+.arcade-btn,
+.arcade-btn-mint,
+.arcade-btn-coral,
+.arcade-btn-gold {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  padding: 9px 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: transform 0.06s steps(2), box-shadow 0.06s steps(2), background-color 0.1s;
+}
+
+.arcade-btn--xs { font-size: 0.54rem; padding: 6px 9px; }
+.arcade-btn--block { width: 100%; }
+
+.arcade-btn {
+  background-color: #2A253D;
+  color: var(--text-main);
+  border: 2px solid var(--border-bright);
+  box-shadow: 0px 3px 0px var(--shadow-hard), inset 0px 2px 0px rgba(255, 255, 255, 0.12);
+}
+.arcade-btn:hover:not(:disabled) { background-color: #352F4D; border-color: var(--accent-gold); }
+.arcade-btn:active:not(:disabled),
+.arcade-btn.is-active,
+.arcade-btn-active {
+  transform: translateY(3px);
+  box-shadow: 0px 0px 0px var(--shadow-hard), inset 0px 2px 0px rgba(0, 0, 0, 0.4);
+  background-color: #362F52;
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+.arcade-btn-mint {
+  background-color: #059669;
+  color: #081C15;
+  border: 2px solid #34D399;
+  box-shadow: 0px 4px 0px #044E38, inset 0px 2px 0px rgba(255, 255, 255, 0.35);
+}
+.arcade-btn-mint:hover:not(:disabled) { background-color: var(--accent-mint); }
+.arcade-btn-mint:active:not(:disabled) { transform: translateY(4px); box-shadow: 0px 0px 0px #044E38; }
+
+.arcade-btn-coral {
+  background-color: #BE123C;
+  color: #FFF1F2;
+  border: 2px solid #FB7185;
+  box-shadow: 0px 4px 0px #5B081D, inset 0px 2px 0px rgba(255, 255, 255, 0.25);
+}
+.arcade-btn-coral:hover:not(:disabled) { background-color: var(--accent-coral); }
+.arcade-btn-coral:active:not(:disabled) { transform: translateY(4px); box-shadow: 0px 0px 0px #5B081D; }
+
+.arcade-btn-gold {
+  background-color: #D97706;
+  color: #13111C;
+  border: 2px solid #FDE68A;
+  box-shadow: 0px 3px 0px #78350F, inset 0px 2px 0px rgba(255, 255, 255, 0.4);
+}
+.arcade-btn-gold:hover:not(:disabled) { background-color: var(--accent-gold); }
+.arcade-btn-gold:active:not(:disabled) { transform: translateY(3px); box-shadow: 0px 0px 0px #78350F; }
+
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ==================== ФОРМЫ И SELECT ==================== */
+.arcade-form-group { margin-bottom: 14px; }
+.arcade-form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.arcade-form-row--3 { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+
+.arcade-label {
+  display: block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.56rem;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.arcade-input,
+.arcade-textarea,
+.arcade-select {
+  width: 100%;
+  background-color: var(--bg-inset);
+  color: var(--text-main);
+  border: 2px solid var(--border-pixel);
+  box-shadow: inset 2px 2px 0px #0B0A12;
+  padding: 9px 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+}
+
+.arcade-input::placeholder,
+.arcade-textarea::placeholder { color: var(--text-muted); }
+
+.arcade-input:focus,
+.arcade-textarea:focus,
+.arcade-select:focus { outline: none; border-color: var(--accent-gold); }
+
+.arcade-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpolygon points='3,5 11,5 7,10' fill='%23FFD166'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 28px;
+  cursor: pointer;
+}
+
+.arcade-select--compact { width: auto; padding: 7px 26px 7px 10px; font-size: 0.76rem; }
+
+/* ==================== БЕЙДЖИ, СТАТУСЫ, TRUST FACTOR ==================== */
+.badge, .status-pill, .trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.54rem;
+  border: 2px solid var(--border-pixel);
+  background: var(--bg-void);
+  color: var(--text-main);
+}
+
+.badge--esports { border-color: var(--accent-coral); color: var(--accent-coral); }
+.badge--it      { border-color: var(--accent-cyan);  color: var(--accent-cyan); }
+.badge--team    { border-color: var(--accent-violet); color: #D8B4FE; }
+
+.status-pill--active, .status-pill--resolved { border-color: var(--accent-mint);  color: var(--accent-mint); }
+.status-pill--muted,  .status-pill--open     { border-color: var(--accent-gold);  color: var(--accent-gold); }
+.status-pill--banned                         { border-color: var(--accent-coral); color: var(--accent-coral); }
+
+.trust-badge--high { border-color: var(--accent-mint);  color: var(--accent-mint); }
+.trust-badge--mid  { border-color: var(--accent-gold);  color: var(--accent-gold); }
+.trust-badge--low  { border-color: var(--accent-coral); color: var(--accent-coral); }
+
+/* ==================== СЕТКИ И КАРТОЧКИ ==================== */
+.arcade-main { padding: 20px 0 48px; }
+.arcade-page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+.arcade-page-title { font-family: 'Press Start 2P', monospace; font-size: clamp(0.88rem, 1.8vw, 1.15rem); color: var(--accent-gold); margin: 0 0 8px; line-height: 1.45; }
+.arcade-page-sub { font-size: 0.82rem; color: var(--text-dim); margin: 0; }
+.arcade-section-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; margin-bottom: 14px; border-bottom: 2px solid var(--border-dark); }
+.arcade-section-title { font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: var(--accent-cyan); margin: 0; }
+
+.split-layout { display: grid; grid-template-columns: minmax(0, 1fr) 370px; gap: 20px; align-items: start; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+
+/* ==================== ТАБЛИЦЫ ==================== */
+.table-wrap { width: 100%; overflow-x: auto; border: 2px solid var(--border-dark); background: var(--bg-inset); }
+.mp-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.mp-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: var(--bg-nav);
+  border-bottom: 2px solid var(--border-pixel);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.54rem;
+  color: var(--accent-gold);
+  white-space: nowrap;
+}
+.mp-table td { padding: 10px 12px; border-bottom: 1px solid var(--border-dark); vertical-align: middle; }
+.mp-table tbody tr:hover { background: rgba(70, 63, 102, 0.22); }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn-group { display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+/* ==================== МОДАЛЬНЫЕ ОКНА И ТОСТЫ ==================== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 250;
+  background: rgba(9, 8, 14, 0.86);
+  display: none; align-items: center; justify-content: center; padding: 16px;
+}
+.modal-overlay.is-open { display: flex; }
+.modal {
+  width: 100%; max-width: 440px; background: var(--bg-panel);
+  border: 3px solid var(--accent-gold); box-shadow: 6px 6px 0px var(--shadow-hard);
+  padding: 20px; position: relative;
+}
+.modal__close { position: absolute; top: 12px; right: 12px; }
+
+.toast-container { position: fixed; bottom: 16px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+.toast { background: var(--bg-panel); border: 2px solid var(--accent-gold); color: var(--accent-gold); padding: 10px 14px; font-size: 0.78rem; box-shadow: 4px 4px 0px var(--shadow-hard); }
+.toast::before { content: "▶ "; color: var(--accent-mint); }
+
+/* ==================== МОБИЛЬНОЕ МЕНЮ ==================== */
+.burger-btn { display: none; background: #2A253D; border: 2px solid var(--border-bright); padding: 7px 9px; cursor: pointer; flex-direction: column; gap: 4px; }
+.burger-btn span { display: block; width: 18px; height: 2px; background: var(--accent-gold); }
+.mobile-drawer-backdrop { position: fixed; inset: 0; background: rgba(9, 8, 14, 0.8); z-index: 180; display: none; }
+.mobile-drawer-backdrop.is-open { display: block; }
+.mobile-drawer {
+  position: fixed; top: 0; right: -300px; width: 280px; height: 100vh;
+  background: var(--bg-nav); border-left: 3px solid var(--accent-gold); z-index: 190;
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 10px;
+  transition: right 0.16s steps(4);
+}
+.mobile-drawer.is-open { right: 0; }
+
+/* ==================== УТИЛИТЫ И ДИНАМИЧЕСКИЕ КНОПКИ JS ==================== */
+.text-dim { color: var(--text-dim); }
+.text-muted { color: var(--text-muted); }
+.text-gold { color: var(--accent-gold); }
+.text-mint { color: var(--accent-mint); }
+.text-coral { color: var(--accent-coral); }
+.text-cyan { color: var(--accent-cyan); }
+.text-secondary { color: var(--text-dim); }
+.text-danger { color: var(--accent-coral); }
+.text-success { color: var(--accent-mint); }
+.text-xs { font-size: 0.74rem; }
+.text-sm { font-size: 0.82rem; }
+.text-mono { font-family: 'JetBrains Mono', monospace; }
+
+.btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.54rem; line-height: 1.3; padding: 6px 10px; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  background: #2A253D; color: var(--text-main);
+  border: 2px solid var(--border-bright); box-shadow: 0px 2px 0px var(--shadow-hard);
+  transition: transform 0.06s steps(2), box-shadow 0.06s steps(2);
+}
+.btn:hover:not(:disabled) { border-color: var(--accent-gold); color: var(--accent-gold); }
+.btn:active:not(:disabled) { transform: translateY(2px); box-shadow: 0px 0px 0px var(--shadow-hard); }
+.btn--primary, .btn--success { background: #059669; color: #081C15; border-color: #34D399; }
+.btn--danger    { background: #BE123C; color: #FFF1F2; border-color: #FB7185; }
+.btn--warn      { background: #D97706; color: #13111C; border-color: #FDE68A; }
+.btn--secondary { background: #362F52; color: var(--accent-cyan); border-color: var(--accent-cyan); }
+.btn--ghost     { background: var(--bg-void); color: var(--text-dim); border-color: var(--border-pixel); }
+
+@keyframes pixelBlink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.cursor-blink { animation: pixelBlink 1s infinite; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-void); }
+::-webkit-scrollbar-thumb { background: var(--border-pixel); border: 1px solid var(--bg-void); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent-gold); }
+
+@media (max-width: 1023px) {
+  .arcade-nav, .hide-on-mobile { display: none !important; }
+  .burger-btn { display: inline-flex; }
+  .split-layout { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .arcade-form-row, .arcade-form-row--3, .grid-2, .grid-4 { grid-template-columns: 1fr; }
+  .pixel-box, .pixel-box-gold { padding: 14px; }
+}
+/* ==========================================================================
+   СВЕТЛАЯ 16-БИТНАЯ ТЕМА (DAYLIGHT PIXEL / SNES PARCHMENT)
+   ========================================================================== */
+[data-theme="light"] {
+  --bg-void: #EFECE4;
+  --bg-panel: #FFFDF8;
+  --bg-card: #FFFFFF;
+  --bg-inset: #E6E1D5;
+  --bg-nav: #F7F4EC;
+  --border-dark: #C8C0AE;
+  --border-pixel: #6B6280;
+  --border-bright: #3B3352;
+  --text-main: #1C1829;
+  --text-dim: #524B68;
+  --text-muted: #766E8C;
+  --accent-gold: #B45309;
+  --accent-mint: #047857;
+  --accent-coral: #BE123C;
+  --accent-cyan: #0369A1;
+  --accent-violet: #6D28D9;
+  --shadow-hard: #2C2640;
+}
+
+[data-theme="light"] body.arcade-theme {
+  background-image:
+    radial-gradient(#CFC8B8 1px, transparent 1px),
+    linear-gradient(to right, rgba(59, 51, 82, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 51, 82, 0.08) 1px, transparent 1px);
+}
+
+[data-theme="light"] .arcade-btn,
+[data-theme="light"] .segment-btn {
+  background-color: #EFEAE0;
+  color: var(--text-main);
+}
+[data-theme="light"] .arcade-btn:hover:not(:disabled),
+[data-theme="light"] .segment-btn:hover { background-color: #E4DDD0; }
+[data-theme="light"] .arcade-nav__link.is-active {
+  background-color: #EAE4D7;
+  color: var(--mode-accent, var(--accent-gold));
+  border-color: var(--mode-accent, var(--accent-gold));
+}
+[data-theme="light"] .arcade-nav__link:hover { color: var(--text-main); background: #E8E2D5; }
+[data-theme="light"] .arcade-btn-mint,
+[data-theme="light"] .arcade-btn-gold { color: #FFFFFF; }
+
+:root,
+[data-mode="all"] {
+  --mode-accent: var(--accent-gold);
+  --mode-accent-soft: rgba(255, 209, 102, 0.15);
+}
+[data-mode="esports_player"] {
+  --mode-accent: var(--accent-mint);
+  --mode-accent-soft: rgba(6, 214, 160, 0.16);
+}
+[data-mode="esports_team"] {
+  --mode-accent: #FF6B35;
+  --mode-accent-soft: rgba(255, 107, 53, 0.16);
+}
+[data-theme="light"][data-mode="esports_team"] {
+  --mode-accent: #C2410C;
+  --mode-accent-soft: rgba(194, 65, 12, 0.14);
+}
+[data-mode="dev_player"] {
+  --mode-accent: var(--accent-cyan);
+  --mode-accent-soft: rgba(76, 201, 240, 0.16);
+}
+[data-mode="dev_team"] {
+  --mode-accent: var(--accent-violet);
+  --mode-accent-soft: rgba(168, 85, 247, 0.18);
+}
+
+.mode-accent-text { color: var(--mode-accent) !important; }
+.segment-btn.is-active {
+  border-color: var(--mode-accent) !important;
+  color: var(--mode-accent) !important;
+  background: var(--mode-accent-soft) !important;
+}
+.swipe-card.is-top { border-color: var(--mode-accent) !important; }
+.deck-counter { color: var(--mode-accent) !important; }
+/* ==================== ЖИРНЫЙ 16-BIT ЛОГОТИП: CPU-ПРИЦЕЛ + КУРСОР КОДА ==================== */
+.arcade-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+
+.arcade-brand__icon {
+  width: 46px;
+  height: 46px;
+  background: var(--bg-void);
+  border: 3px solid var(--border-bright);
+  box-shadow:
+    inset 2px 2px 0px rgba(255, 255, 255, 0.1),
+    3px 3px 0px var(--shadow-hard);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.08s steps(2), border-color 0.12s;
+}
+
+.arcade-brand:hover .arcade-brand__icon {
+  transform: translateY(-2px);
+  border-color: var(--accent-gold);
+}
+
+.mp-wordmark {
+  display: inline-flex;
+  align-items: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 1.06rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mp-word--match {
+  color: var(--accent-gold);
+  -webkit-text-stroke: 0.9px var(--accent-gold);
+  text-shadow:
+    2px 0px 0px var(--shadow-hard),
+    0px 2px 0px var(--shadow-hard),
+    3px 3px 0px var(--shadow-hard);
+}
+
+.mp-word--point {
+  color: var(--text-main);
+  -webkit-text-stroke: 0.9px var(--text-main);
+  text-shadow:
+    2px 0px 0px var(--shadow-hard),
+    0px 2px 0px var(--shadow-hard),
+    3px 3px 0px var(--shadow-hard);
+}
+
+.mp-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  filter: drop-shadow(2px 2px 0px var(--shadow-hard));
+}
+
+.mp-glyph--aim {
+  margin: 0 2px;
+}
+
+/* Жирная буква I в виде курсора терминала/IDE */
+.mp-glyph--cursor {
+  display: inline-block;
+  width: 11px;
+  height: 17px;
+  margin: 0 3px 0 2px;
+  background: var(--accent-mint);
+  border: 2px solid var(--accent-cyan);
+  box-shadow: 2px 2px 0px var(--shadow-hard);
+  animation: devCursorBlink 1.15s steps(2) infinite;
+}
+
+@keyframes devCursorBlink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0.45; }
+}
+
+@keyframes aimDotPulse {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0.35; }
+}
+.mp-aim-dot {
+  animation: aimDotPulse 1s infinite;
+}
+
+.arcade-brand__sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.64rem;
+  font-weight: 800;
+  color: var(--text-dim);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-top: 5px;
+}

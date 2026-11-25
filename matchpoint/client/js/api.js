@@ -17,7 +17,7 @@
 (function (global) {
   "use strict";
 
-  const SESSION_STATE_KEY = "mp_seed_runtime_state_v3";
+ const SESSION_STATE_KEY = "mp_seed_runtime_state_v5";
 
   // --- Точные справочники из 02_seed.sql ---
   const SEED_DICTIONARIES = {
@@ -168,36 +168,273 @@
       nickname: "HeadTap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=HeadTap",
       prime_time: "20:00-00:00", bio: "Опорник / рифлер, знаю раскид на всех картах маппула.",
       contacts: { discord: "headtap_cs" }, external_links: { faceit: "https://www.faceit.com/en/players/HeadTap" }, trust_score: 4.80
+    },
+    {
+      id: 15, email: "sniper@matchpoint.dev", role: "player", status: "active",
+      nickname: "SniperNova", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=SniperNova",
+      prime_time: "20:00-01:00", bio: "AWP 2600 ELO на Faceit, стабильные опен-фраги на Mirage и Ancient.",
+      contacts: { discord: "snipernova", telegram: "@sniper_nova" },
+      external_links: { faceit: "https://www.faceit.com/en/players/SniperNova", steam: "https://steamcommunity.com/id/snipernova" }, trust_score: 4.92
+    },
+    {
+      id: 16, email: "invoker@matchpoint.dev", role: "player", status: "active",
+      nickname: "InvokerGod", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=InvokerGod",
+      prime_time: "19:00-00:00", bio: "Мидер 6400 MMR (Invoker, Storm, Ember). Ищу активную четвёрку и капитана.",
+      contacts: { discord: "invokergod" },
+      external_links: { steam: "https://steamcommunity.com/id/invokergod" }, trust_score: 4.88
+    },
+    {
+      id: 17, email: "clutch@matchpoint.dev", role: "player", status: "active",
+      nickname: "ClutchFox", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=ClutchFox",
+      prime_time: "18:30-23:30", bio: "Энтри-фраггер без тильта, 9 lvl Faceit. Готов катать пракки и турниры.",
+      contacts: { discord: "clutchfox", telegram: "@clutch_fox" },
+      external_links: { faceit: "https://www.faceit.com/en/players/ClutchFox" }, trust_score: 4.95
+    },
+    {
+      id: 18, email: "mirage_cap@matchpoint.dev", role: "captain", status: "active",
+      nickname: "MirageCap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=MirageCap",
+      prime_time: "20:00-01:00", bio: "Капитан стака Minsk Mirage (CS2). Разбираем демки, готовимся к LAN.",
+      contacts: { discord: "miragecap", telegram: "@minsk_mirage" },
+      external_links: { faceit: "https://www.faceit.com/en/players/MirageCap" }, trust_score: 4.90
+    },
+    {
+      id: 19, email: "roshan_cap@matchpoint.dev", role: "captain", status: "active",
+      nickname: "RoshanLead", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=RoshanLead",
+      prime_time: "19:00-00:00", bio: "Собираем состав по Dota 2 на Battle Cup и открытые квалификации.",
+      contacts: { discord: "roshanlead" },
+      external_links: { steam: "https://steamcommunity.com/id/roshanlead" }, trust_score: 4.84
+    },
+    {
+      id: 20, email: "gocraft@matchpoint.dev", role: "player", status: "active",
+      nickname: "GoCraft", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=GoCraft",
+      prime_time: "20:00-02:00", bio: "Backend-разработчик (Go, PostgreSQL, Docker). Призёр 3 студенческих хакатонов.",
+      contacts: { telegram: "@gocraft_dev" },
+      external_links: { github: "https://github.com/gocraft" }, trust_score: 4.96
+    },
+    {
+      id: 21, email: "figmawave@matchpoint.dev", role: "player", status: "active",
+      nickname: "FigmaWave", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=FigmaWave",
+      prime_time: "18:30-23:30", bio: "UI/UX дизайнер и верстальщик. Быстро собираю кликабельные прототипы и дизайн-системы.",
+      contacts: { telegram: "@figma_wave", discord: "figmawave" },
+      external_links: { github: "https://github.com/figmawave" }, trust_score: 4.91
+    },
+    {
+      id: 22, email: "pitch@matchpoint.dev", role: "player", status: "active",
+      nickname: "PitchMaster", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=PitchMaster",
+      prime_time: "19:00-00:00", bio: "Тимлид и продакт на хакатоны: архитектура, презентация и защита перед жюри.",
+      contacts: { telegram: "@pitch_master" },
+      external_links: { github: "https://github.com/pitchmaster" }, trust_score: 4.87
+    },
+    {
+      id: 23, email: "storm_cap@matchpoint.dev", role: "captain", status: "active",
+      nickname: "StormLead", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=StormLead",
+      prime_time: "20:00-02:00", bio: "Собираем веб-платформу на Winter CodeJam, нужен сильный фронтендер.",
+      contacts: { telegram: "@bytestorm_lab" },
+      external_links: { github: "https://github.com/bytestorm-lab" }, trust_score: 4.93
+    },
+    {
+      id: 24, email: "neural_cap@matchpoint.dev", role: "captain", status: "active",
+      nickname: "NeuralCap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=NeuralCap",
+      prime_time: "22:00-03:00", bio: "Делаем AI-ассистента для геймеров, ищем ML-инженера в команду.",
+      contacts: { telegram: "@neuralforge_ai" },
+      external_links: { github: "https://github.com/neuralforge-ai" }, trust_score: 4.89
+    },
+    // --- Игроки киберспорта (25..29) ---
+    {
+      id: 25, email: "flashb@matchpoint.dev", role: "player", status: "active",
+      nickname: "FlashBang", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=FlashBang",
+      prime_time: "20:00-01:00", bio: "Саппорт в CS2: идеальные флешки под выход, знаю все смоки на Inferno и Anubis.",
+      contacts: { discord: "flashbang_cs" }, external_links: { faceit: "https://www.faceit.com/en/players/FlashBang" }, trust_score: 4.94
+    },
+    {
+      id: 26, email: "carry9k@matchpoint.dev", role: "player", status: "active",
+      nickname: "PhantomFarm", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=PhantomFarm",
+      prime_time: "19:00-00:00", bio: "Керри 5800 MMR (PA, Morph, Void). Фармлю стабильно, слушаю коллы капитана.",
+      contacts: { discord: "phantomfarm", telegram: "@phantom_dota" }, external_links: { steam: "https://steamcommunity.com/id/phantomfarm" }, trust_score: 4.86
+    },
+    {
+      id: 27, email: "iglpro@matchpoint.dev", role: "player", status: "active",
+      nickname: "TacticMind", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=TacticMind",
+      prime_time: "20:00-00:00", bio: "IGL в CS2, 2400 ELO. Люблю структурные раунды и спокойную коммуникацию.",
+      contacts: { discord: "tacticmind" }, external_links: { faceit: "https://www.faceit.com/en/players/TacticMind" }, trust_score: 4.97
+    },
+    {
+      id: 28, email: "roamer@matchpoint.dev", role: "player", status: "active",
+      nickname: "SmokeGank", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=SmokeGank",
+      prime_time: "18:30-23:30", bio: "Четвёрка в Dota 2 (Rubick, Earth Spirit, Tusk). Всегда на рунах и гангах мида.",
+      contacts: { discord: "smokegank" }, external_links: { steam: "https://steamcommunity.com/id/smokegank" }, trust_score: 4.91
+    },
+    {
+      id: 29, email: "anchor@matchpoint.dev", role: "player", status: "active",
+      nickname: "SiteAnchor", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=SiteAnchor",
+      prime_time: "22:00-03:00", bio: "Опорник Б в CS2 (7 lvl Faceit). Держу плэнт до последнего, играю поздно вечером.",
+      contacts: { discord: "siteanchor" }, external_links: { steam: "https://steamcommunity.com/id/siteanchor" }, trust_score: 4.82
+    },
+
+    // --- Капитаны команд игроков (30..34) ---
+    {
+      id: 30, email: "cap_brest@matchpoint.dev", role: "captain", status: "active",
+      nickname: "BrestIGL", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=BrestIGL",
+      prime_time: "20:00-01:00", bio: "Собираем крепкий состав по CS2 на ESEA Open и локальные LAN.",
+      contacts: { discord: "brest_igl", telegram: "@brest_cs2" }, external_links: { faceit: "https://www.faceit.com/en/players/BrestIGL" }, trust_score: 4.93
+    },
+    {
+      id: 31, email: "cap_inferno@matchpoint.dev", role: "captain", status: "active",
+      nickname: "InfernoBoss", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=InfernoBoss",
+      prime_time: "19:00-00:00", bio: "Команда 8-10 lvl Faceit, тренируемся 3 раза в неделю с тренером.",
+      contacts: { discord: "infernoboss" }, external_links: { faceit: "https://www.faceit.com/en/players/InfernoBoss" }, trust_score: 4.89
+    },
+    {
+      id: 32, email: "cap_dire@matchpoint.dev", role: "captain", status: "active",
+      nickname: "DireDraft", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=DireDraft",
+      prime_time: "18:30-23:30", bio: "Драфтер и капитан Dota 2 стака, играем каждые выходные Battle Cup.",
+      contacts: { discord: "diredraft" }, external_links: { steam: "https://steamcommunity.com/id/diredraft" }, trust_score: 4.90
+    },
+    {
+      id: 33, email: "cap_ancient@matchpoint.dev", role: "captain", status: "active",
+      nickname: "RuneControl", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=RuneControl",
+      prime_time: "20:00-02:00", bio: "Ищем стабильную пятёрку в сыгранный Dota 2 ростер 4500+ MMR.",
+      contacts: { discord: "runecontrol" }, external_links: { steam: "https://steamcommunity.com/id/runecontrol" }, trust_score: 4.85
+    },
+    {
+      id: 34, email: "cap_clutch@matchpoint.dev", role: "captain", status: "active",
+      nickname: "OvertimeCap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=OvertimeCap",
+      prime_time: "20:00-00:00", bio: "Ночной CS2 микс на фейсит и студенческую лигу.",
+      contacts: { discord: "overtimecap" }, external_links: { faceit: "https://www.faceit.com/en/players/OvertimeCap" }, trust_score: 4.88
+    },
+
+    // --- Разработчики (35..39) ---
+    {
+      id: 35, email: "rustdev@matchpoint.dev", role: "player", status: "active",
+      nickname: "Rustacean", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=Rustacean",
+      prime_time: "20:00-02:00", bio: "Пишу быстрые сервисы на Rust и Node.js, поднимаю Docker и CI/CD за 15 минут.",
+      contacts: { telegram: "@rustacean_by" }, external_links: { github: "https://github.com/rustacean-by" }, trust_score: 4.98
+    },
+    {
+      id: 36, email: "reactui@matchpoint.dev", role: "player", status: "active",
+      nickname: "CssWizard", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=CssWizard",
+      prime_time: "19:00-00:00", bio: "Frontend (React, TypeScript, CSS-анимации). Люблю пиксель-арт и адаптивную вёрстку.",
+      contacts: { telegram: "@css_wizard", discord: "csswizard" }, external_links: { github: "https://github.com/csswizard" }, trust_score: 4.92
+    },
+    {
+      id: 37, email: "cvml@matchpoint.dev", role: "player", status: "active",
+      nickname: "VisionNet", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=VisionNet",
+      prime_time: "20:00-01:00", bio: "Computer Vision & LLM инженер (PyTorch, FastAPI). Сделаю рабочий ML-бэкенд на хакатон.",
+      contacts: { telegram: "@vision_net_ml" }, external_links: { github: "https://github.com/visionnet-ml" }, trust_score: 4.95
+    },
+    {
+      id: 38, email: "uxpro@matchpoint.dev", role: "player", status: "active",
+      nickname: "PixelMuse", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=PixelMuse",
+      prime_time: "18:30-23:30", bio: "Product & UI/UX дизайнер: Figma, интерактивные макеты, презентации для жюри.",
+      contacts: { telegram: "@pixel_muse_ux" }, external_links: { github: "https://github.com/pixelmuse" }, trust_score: 4.90
+    },
+    {
+      id: 39, email: "fullstack@matchpoint.dev", role: "player", status: "active",
+      nickname: "ApiBuilder", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=ApiBuilder",
+      prime_time: "22:00-03:00", bio: "Junior+ Backend/Fullstack (Python, Express, SQL). Быстро учусь, готов тащить задачи ночью.",
+      contacts: { telegram: "@apibuilder_dev" }, external_links: { github: "https://github.com/apibuilder" }, trust_score: 4.84
+    },
+
+    // --- Капитаны команд разработчиков (40..44) ---
+    {
+      id: 40, email: "hack_fin@matchpoint.dev", role: "captain", status: "active",
+      nickname: "FinTechLead", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=FinTechLead",
+      prime_time: "19:00-00:00", bio: "Собираем команду на FinTech-трек хакатона, есть идея и готовая архитектура.",
+      contacts: { telegram: "@fintech_lead" }, external_links: { github: "https://github.com/fintech-squad" }, trust_score: 4.94
+    },
+    {
+      id: 41, email: "hack_game@matchpoint.dev", role: "captain", status: "active",
+      nickname: "GameJamCap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=GameJamCap",
+      prime_time: "20:00-02:00", bio: "Делаем браузерную 16-битную игру на GameDev-трек, нужен дизайнер/художник.",
+      contacts: { telegram: "@gamejam_cap", discord: "gamejamcap" }, external_links: { github: "https://github.com/gamejam-crew" }, trust_score: 4.91
+    },
+    {
+      id: 42, email: "hack_edu@matchpoint.dev", role: "captain", status: "active",
+      nickname: "EduTechBoss", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=EduTechBoss",
+      prime_time: "18:30-23:30", bio: "Строим AI-тренажёр для студентов, нужен сильный Backend на Node/Python.",
+      contacts: { telegram: "@edutech_boss" }, external_links: { github: "https://github.com/edutech-lab" }, trust_score: 4.89
+    },
+    {
+      id: 43, email: "hack_sec@matchpoint.dev", role: "captain", status: "active",
+      nickname: "CyberSecCap", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=CyberSecCap",
+      prime_time: "20:00-01:00", bio: "Команда на CTF и Web-трек, ищем фронтендера для дашборда мониторинга.",
+      contacts: { telegram: "@cybersec_cap" }, external_links: { github: "https://github.com/cybersec-team" }, trust_score: 4.96
+    },
+    {
+      id: 44, email: "hack_pitch@matchpoint.dev", role: "captain", status: "active",
+      nickname: "StartupCrew", avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=StartupCrew",
+      prime_time: "19:00-00:00", bio: "Два разраба + ML готовы к CodeJam, нужен тимлид/питчер на защиту проекта.",
+      contacts: { telegram: "@startup_crew_by" }, external_links: { github: "https://github.com/startup-crew" }, trust_score: 4.87
     }
   ];
 
   // --- profile_disciplines из 02_seed.sql ---
   const SEED_PROFILE_DISCIPLINES = [
-    { profile_id: 1, discipline_id: 3, role_id: 11, rank_id: 11 },
-    { profile_id: 2, discipline_id: 1, role_id: 4, rank_id: 2 },
-    { profile_id: 3, discipline_id: 1, role_id: 5, rank_id: 3 },
-    { profile_id: 4, discipline_id: 1, role_id: 5, rank_id: 3 },
-    { profile_id: 5, discipline_id: 1, role_id: 2, rank_id: 2 },
-    { profile_id: 5, discipline_id: 3, role_id: 11, rank_id: 10 },
-    { profile_id: 6, discipline_id: 2, role_id: 6, rank_id: 5 },
-    { profile_id: 7, discipline_id: 2, role_id: 7, rank_id: 7 },
-    { profile_id: 8, discipline_id: 3, role_id: 11, rank_id: 10 },
-    { profile_id: 8, discipline_id: 2, role_id: 8, rank_id: 6 },
-    { profile_id: 9, discipline_id: 1, role_id: 1, rank_id: 4 },
+    { profile_id: 1,  discipline_id: 3, role_id: 11, rank_id: 11 },
+    { profile_id: 2,  discipline_id: 1, role_id: 4,  rank_id: 2 },
+    { profile_id: 3,  discipline_id: 1, role_id: 5,  rank_id: 3 },
+    { profile_id: 4,  discipline_id: 1, role_id: 5,  rank_id: 3 },
+    { profile_id: 5,  discipline_id: 1, role_id: 2,  rank_id: 2 },
+    { profile_id: 5,  discipline_id: 3, role_id: 11, rank_id: 10 },
+    { profile_id: 6,  discipline_id: 2, role_id: 6,  rank_id: 5 },
+    { profile_id: 7,  discipline_id: 2, role_id: 7,  rank_id: 7 },
+    { profile_id: 8,  discipline_id: 3, role_id: 11, rank_id: 10 },
+    { profile_id: 8,  discipline_id: 2, role_id: 8,  rank_id: 6 },
+    { profile_id: 9,  discipline_id: 1, role_id: 1,  rank_id: 4 },
     { profile_id: 10, discipline_id: 2, role_id: 10, rank_id: 7 },
     { profile_id: 11, discipline_id: 3, role_id: 12, rank_id: 10 },
-    { profile_id: 11, discipline_id: 1, role_id: 3, rank_id: 2 },
+    { profile_id: 11, discipline_id: 1, role_id: 3,  rank_id: 2 },
     { profile_id: 12, discipline_id: 3, role_id: 13, rank_id: 10 },
-    { profile_id: 12, discipline_id: 2, role_id: 9, rank_id: 6 },
-    { profile_id: 13, discipline_id: 1, role_id: 2, rank_id: 2 },
-    { profile_id: 14, discipline_id: 1, role_id: 3, rank_id: 3 }
+    { profile_id: 12, discipline_id: 2, role_id: 9,  rank_id: 6 },
+    { profile_id: 13, discipline_id: 1, role_id: 2,  rank_id: 2 },
+    { profile_id: 14, discipline_id: 1, role_id: 3,  rank_id: 3 },
+    { profile_id: 15, discipline_id: 1, role_id: 1,  rank_id: 4 },
+    { profile_id: 16, discipline_id: 2, role_id: 7,  rank_id: 8 },
+    { profile_id: 17, discipline_id: 1, role_id: 2,  rank_id: 3 },
+    { profile_id: 18, discipline_id: 1, role_id: 5,  rank_id: 4 },
+    { profile_id: 19, discipline_id: 2, role_id: 10, rank_id: 7 },
+    { profile_id: 20, discipline_id: 3, role_id: 11, rank_id: 11 },
+    { profile_id: 21, discipline_id: 3, role_id: 14, rank_id: 10 },
+    { profile_id: 22, discipline_id: 3, role_id: 15, rank_id: 11 },
+    { profile_id: 23, discipline_id: 3, role_id: 11, rank_id: 10 },
+    { profile_id: 24, discipline_id: 3, role_id: 13, rank_id: 11 },
+    { profile_id: 25, discipline_id: 1, role_id: 4,  rank_id: 3 },
+    { profile_id: 26, discipline_id: 2, role_id: 6,  rank_id: 7 },
+    { profile_id: 27, discipline_id: 1, role_id: 5,  rank_id: 4 },
+    { profile_id: 28, discipline_id: 2, role_id: 9,  rank_id: 7 },
+    { profile_id: 29, discipline_id: 1, role_id: 3,  rank_id: 2 },
+    { profile_id: 30, discipline_id: 1, role_id: 5,  rank_id: 3 },
+    { profile_id: 31, discipline_id: 1, role_id: 5,  rank_id: 4 },
+    { profile_id: 32, discipline_id: 2, role_id: 10, rank_id: 7 },
+    { profile_id: 33, discipline_id: 2, role_id: 7,  rank_id: 6 },
+    { profile_id: 34, discipline_id: 1, role_id: 3,  rank_id: 3 },
+    { profile_id: 35, discipline_id: 3, role_id: 11, rank_id: 11 },
+    { profile_id: 36, discipline_id: 3, role_id: 12, rank_id: 10 },
+    { profile_id: 37, discipline_id: 3, role_id: 13, rank_id: 11 },
+    { profile_id: 38, discipline_id: 3, role_id: 14, rank_id: 10 },
+    { profile_id: 39, discipline_id: 3, role_id: 11, rank_id: 9 },
+    { profile_id: 40, discipline_id: 3, role_id: 15, rank_id: 11 },
+    { profile_id: 41, discipline_id: 3, role_id: 12, rank_id: 10 },
+    { profile_id: 42, discipline_id: 3, role_id: 13, rank_id: 10 },
+    { profile_id: 43, discipline_id: 3, role_id: 11, rank_id: 11 },
+    { profile_id: 44, discipline_id: 3, role_id: 11, rank_id: 10 }
   ];
 
   // --- teams из 02_seed.sql ---
   const INITIAL_TEAMS = [
-    { id: 1, captain_id: 4, discipline_id: 1, name: "Grodno Five", description: "Стак по CS2 на зимний LAN, тренируемся 4 раза в неделю.", looking_for_role_id: 2, members_count: 3 },
-    { id: 2, captain_id: 7, discipline_id: 2, name: "Radiant Stack", description: "Команда по Dota 2 на 5000+ MMR, нужен сильный керри.", looking_for_role_id: 6, members_count: 3 },
-    { id: 3, captain_id: 8, discipline_id: 3, name: "NullPointer Crew", description: "Собираем веб-сервис на CodeJam, нужен UI/UX дизайнер.", looking_for_role_id: 14, members_count: 3 }
+    { id: 1,  captain_id: 4,  discipline_id: 1, name: "Grodno Five",      description: "Стак по CS2 на зимний LAN, тренируемся 4 раза в неделю.",               looking_for_role_id: 2,  members_count: 3 },
+    { id: 2,  captain_id: 7,  discipline_id: 2, name: "Radiant Stack",    description: "Команда по Dota 2 на 5000+ MMR, нужен сильный керри.",                  looking_for_role_id: 6,  members_count: 3 },
+    { id: 3,  captain_id: 8,  discipline_id: 3, name: "NullPointer Crew", description: "Собираем веб-сервис на CodeJam, нужен UI/UX дизайнер.",                 looking_for_role_id: 14, members_count: 3 },
+    { id: 4,  captain_id: 30, discipline_id: 1, name: "Brest Syndicate",  description: "Сыгранная четвёрка CS2 на ESEA Open, ищем стабильного AWPer 8+ lvl.",   looking_for_role_id: 1,  members_count: 4 },
+    { id: 5,  captain_id: 31, discipline_id: 1, name: "Inferno Kings",    description: "Тренировки 3 раза в неделю + разбор демок, нужен Entry Fragger.",        looking_for_role_id: 2,  members_count: 4 },
+    { id: 6,  captain_id: 32, discipline_id: 2, name: "Dire Wolves",      description: "Состав на Battle Cup (5000+ MMR), ищем сильного мидера (Pos 2).",        looking_for_role_id: 7,  members_count: 4 },
+    { id: 7,  captain_id: 33, discipline_id: 2, name: "Rune Guardians",   description: "Дружный стак 4500+ MMR без тильта, нужна пятёрка (Hard Support).",       looking_for_role_id: 10, members_count: 4 },
+    { id: 8,  captain_id: 34, discipline_id: 1, name: "Overtime Five",    description: "Студенческая команда по CS2 на зимний кубок, ищем рифлера.",             looking_for_role_id: 3,  members_count: 4 },
+    { id: 9,  captain_id: 40, discipline_id: 3, name: "FinFlow Squad",    description: "Делаем скоринг-сервис на FinTech-трек, нужен ML / Data Science.",        looking_for_role_id: 13, members_count: 3 },
+    { id: 10, captain_id: 41, discipline_id: 3, name: "PixelForge Jam",   description: "Собираем 16-битную веб-игру за 36 часов, ищем UI/UX дизайнера.",         looking_for_role_id: 14, members_count: 3 },
+    { id: 11, captain_id: 42, discipline_id: 3, name: "CampusAI Lab",     description: "AI-помощник для подготовки к экзаменам, нужен Backend (Node/Python).",   looking_for_role_id: 11, members_count: 3 },
+    { id: 12, captain_id: 43, discipline_id: 3, name: "ZeroDay Shield",   description: "Дашборд безопасности на Web-трек, ищем Frontend-разработчика.",          looking_for_role_id: 12, members_count: 3 },
+    { id: 13, captain_id: 44, discipline_id: 3, name: "ShipFast Crew",    description: "Сильный тех-стек уже собран, нужен Team Lead / Pitch для защиты.",       looking_for_role_id: 15, members_count: 3 }
   ];
 
   // --- swipes и matches из 02_seed.sql ---
@@ -414,8 +651,10 @@
     return data;
   }
 
-  function isRouteMissing(err) {
-    return Boolean(err && (err.isOffline || err.status === 404 || err.status === 501));
+ function isRouteMissing(err) {
+    return Boolean(
+      err && (err.isOffline || err.status === 404 || err.status === 405 || err.status === 501)
+    );
   }
 
   async function tryEndpoints(candidates) {
