@@ -1,3 +1,4 @@
+
 :root {
   --bg-void: #13111C;
   --bg-panel: #1D1A2B;
@@ -16,6 +17,10 @@
   --accent-cyan: #4CC9F0;
   --accent-violet: #A855F7;
   --shadow-hard: #09080E;
+  /* Совместимость с разметкой, которую генерирует client/js/swipe.js и страницы каталога */
+  --text-secondary: var(--text-dim);
+  --accent-skip: var(--accent-coral);
+  --accent-skip-soft: rgba(239, 71, 111, 0.16);
 }
 
 *, *::before, *::after {
@@ -611,4 +616,169 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   letter-spacing: 0.14em;
   text-transform: uppercase;
   margin-top: 5px;
+}
+
+
+/* ==========================================================================
+   КАТАЛОЖНЫЕ СТРАНИЦЫ (events.html, teams.html) — ЕДИНАЯ 16-БИТ СИСТЕМА
+   Классы генерируются catalog.js / events.js / teams.js / event-detail.js.
+   Раньше они жили в main.css + catalog.css — теперь скин здесь.
+   ========================================================================== */
+.page-shell { min-height: 72vh; padding: 22px 0 48px; }
+#content h1 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(0.95rem, 2.2vw, 1.3rem);
+  color: var(--accent-gold);
+  margin: 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+#content h2 {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+  margin: 0;
+  line-height: 1.6;
+}
+#content h3 { font-size: 0.86rem; color: var(--accent-gold); margin: 0 0 8px; }
+#content p { font-size: 0.82rem; margin: 0; }
+#content a { color: var(--accent-cyan); }
+
+.mp-card {
+  background-color: var(--bg-panel);
+  border: 3px solid var(--border-pixel);
+  box-shadow:
+    inset 2px 2px 0px rgba(255, 255, 255, 0.07),
+    inset -2px -2px 0px rgba(0, 0, 0, 0.45),
+    4px 4px 0px var(--shadow-hard);
+  padding: 16px;
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  min-width: 0;
+}
+.mp-card h2 { border-bottom: 2px solid var(--border-dark); padding-bottom: 10px; }
+
+.catalog-header, .row, .filters, .item-line, .card-meta {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.catalog-header, .item-line { justify-content: space-between; }
+.catalog-header { margin-bottom: 18px; }
+.filters { margin: 0 0 20px; }
+.filters .form-group { min-width: 190px; }
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+}
+.catalog-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(250px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.stack { display: grid; gap: 16px; min-width: 0; }
+
+.catalog-card { border-top: 3px solid var(--accent-mint); display: flex; flex-direction: column; overflow-wrap: anywhere; }
+.catalog-card.it { border-top-color: var(--accent-violet); }
+.catalog-card h2 a, .catalog-card h3 a { color: inherit; text-decoration: none; }
+.catalog-card h2 a:hover { color: var(--accent-gold); }
+.catalog-card .card-end { margin-top: auto; }
+.date-tile, .team-mark {
+  display: grid; place-items: center;
+  background: var(--bg-inset); border: 2px solid var(--accent-mint);
+  color: var(--accent-mint); padding: 8px 12px; min-width: 58px;
+  box-shadow: 2px 2px 0px var(--shadow-hard);
+}
+.date-tile b { font-family: 'Press Start 2P', monospace; font-size: 0.95rem; line-height: 1.2; }
+.date-tile small { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.catalog-card.it .date-tile, .team-mark { border-color: var(--accent-violet); color: #D8B4FE; }
+.team-mark { font-family: 'Press Start 2P', monospace; font-size: 0.8rem; }
+.card-meta, .muted { font-size: 0.74rem; color: var(--text-dim); }
+.catalog-card p, .mp-card dd { overflow-wrap: anywhere; }
+.card-end { padding-top: 10px; border-top: 2px solid var(--border-dark); }
+
+#content form { display: grid; gap: 12px; }
+.form-group { display: grid; gap: 6px; margin: 0; color: var(--text-dim); }
+.form-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.54rem; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.form-control {
+  width: 100%;
+  background-color: var(--bg-inset);
+  color: var(--text-main);
+  border: 2px solid var(--border-pixel);
+  box-shadow: inset 2px 2px 0px #0B0A12;
+  padding: 9px 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+}
+textarea.form-control { resize: vertical; }
+.form-control:focus { outline: none; border-color: var(--accent-gold); }
+select.form-control { cursor: pointer; }
+
+#content summary { cursor: pointer; font-weight: 700; font-size: 0.84rem; }
+#content summary:hover { color: var(--accent-gold); }
+#content details[open] > summary { margin-bottom: 12px; border-bottom: 2px solid var(--border-dark); padding-bottom: 8px; }
+#content .member { padding-block: 10px; border-bottom: 1px solid var(--border-dark); }
+#content .back { display: inline-block; margin-bottom: 14px; font-size: 0.8rem; text-decoration: none; }
+#content .back:hover { color: var(--accent-gold); }
+#content [hidden] { display: none !important; }
+.create-panel { margin-top: 4px; border-color: var(--accent-gold); }
+.create-panel > summary {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem; color: var(--accent-gold); padding: 4px 0;
+}
+
+.match { border-left: 3px solid var(--accent-violet); padding: 12px; background: var(--bg-inset); border: 2px solid var(--border-dark); border-left: 4px solid var(--accent-violet); }
+.round { display: grid; gap: 10px; margin-bottom: 14px; }
+.round h3 { margin-bottom: 10px; }
+
+.btn--sm { font-size: 0.5rem; padding: 5px 8px; }
+
+#notice:not(:empty) {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  z-index: 300; max-width: 90vw;
+  background: var(--bg-panel); color: var(--accent-gold);
+  padding: 10px 14px; border: 2px solid var(--accent-gold);
+  box-shadow: 4px 4px 0px var(--shadow-hard);
+  font-size: 0.78rem;
+}
+
+/* ==================== АДАПТИВНОСТЬ: 1024px+ / 768–1023px / 360–767px ==================== */
+@media (max-width: 1023px) {
+  .catalog-layout { grid-template-columns: 1fr; }
+  .arcade-page-head { flex-direction: column; align-items: flex-start; }
+  .mp-table { font-size: 0.76rem; }
+}
+
+@media (max-width: 767px) {
+  .arcade-container { padding: 0 12px; }
+  .arcade-main { padding: 14px 0 36px; }
+  .page-shell { padding: 12px 0 36px; }
+  .modal-overlay { padding: 10px; }
+  .modal { max-width: 100%; padding: 16px 14px; }
+  .pixel-box, .pixel-box-gold, .mp-card { padding: 13px; }
+  .kpi-card { padding: 13px; }
+
+  /* 5 кнопок режимов поиска: 2 в ряд, на самых узких — в столбик */
+  .mode-buttons { width: 100%; }
+  .mode-buttons .segment-btn { flex: 1 1 calc(50% - 6px); justify-content: center; text-align: center; }
+  .arcade-filters-group { width: 100%; }
+  .arcade-filters-group .arcade-select--compact { flex: 1 1 calc(50% - 6px); }
+  .filters .form-group { min-width: 100%; }
+
+  .grid-2 { gap: 14px; }
+  .arcade-page-title { font-size: 0.82rem; }
+  .mp-table th, .mp-table td { padding: 8px 9px; }
+  .card-end .btn { width: 100%; }
+}
+
+@media (max-width: 380px) {
+  .mode-buttons .segment-btn { flex: 1 1 100%; }
+  .arcade-select--compact { width: 100%; }
+  .arcade-hud-right { gap: 6px; }
+  .arcade-brand__sub { display: none; }
 }
