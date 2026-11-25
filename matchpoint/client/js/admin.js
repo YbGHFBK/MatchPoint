@@ -81,18 +81,6 @@
     return "low";
   }
 
-  function updateHeaderUI() {
-    const user = currentUser();
-    const sel = document.getElementById("roleSwitcher");
-    const mobSel = document.getElementById("mobileRoleSwitcher");
-    if (sel && Array.from(sel.options).some((o) => Number(o.value) === Number(user.id))) {
-      sel.value = String(user.id);
-    }
-    if (mobSel && Array.from(mobSel.options).some((o) => Number(o.value) === Number(user.id))) {
-      mobSel.value = String(user.id);
-    }
-  }
-
   function setActiveTab(tabName) {
     if ((tabName === "dictionaries" || tabName === "analytics") && !isAdmin()) {
       tabName = "moderation";
@@ -465,7 +453,6 @@
   }
 
   async function refreshAll() {
-    updateHeaderUI();
     if (!syncRoleAccess()) return;
     try {
       await Promise.all([
@@ -503,25 +490,6 @@
     window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(refreshAll), () => toggleDrawer(false));
     burgerBtn?.addEventListener("click", () => toggleDrawer(!drawer.classList.contains("is-open")));
     backdrop?.addEventListener("click", () => toggleDrawer(false));
-
-    const handleSwitch = async (userId) => {
-      try {
-        await window.MPApi.switchSeedAccount(userId);
-        showToast(`Аккаунт: ${currentUser().nickname} (${currentUser().role})`);
-        await refreshAll();
-      } catch (err) {
-        showToast(err.message || "Ошибка смены аккаунта");
-      }
-    };
-
-    document.getElementById("roleSwitcher")?.addEventListener("change", (e) => handleSwitch(e.target.value));
-    document.getElementById("mobileRoleSwitcher")?.addEventListener("change", (e) => {
-      handleSwitch(e.target.value);
-      toggleDrawer(false);
-    });
-    document.querySelectorAll("[data-quick-switch]").forEach((btn) => {
-      btn.addEventListener("click", () => handleSwitch(btn.dataset.quickSwitch));
-    });
 
     document.querySelectorAll("#adminTabs .tab-btn").forEach((btn) => {
       btn.addEventListener("click", () => setActiveTab(btn.dataset.tab));

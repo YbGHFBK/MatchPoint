@@ -50,11 +50,6 @@ const Hub = (function () {
         return `<a class="arcade-nav__link ${active ? "is-active" : ""}" href="${key}.html">${active ? '<span class="cursor-blink text-mint">▶</span> ' : ""}${label}</a>`;
       })
       .join("");
-    const accounts = api.SEED_ACCOUNTS.filter((a) => a.status === "active" && a.role !== "guest");
-    let options = option("", "Гость") + accounts.map((a) => option(a.id, a.nickname)).join("");
-    if (user.id && !accounts.some((a) => a.id === user.id)) {
-      options += option(user.id, user.nickname || user.email);
-    }
     const themeIcon = (storage.getTheme?.() || storage.initTheme()) === "dark" ? "☀️" : "🌙";
     document.getElementById("siteHeader").innerHTML = `
       <div class="arcade-container arcade-header__inner">
@@ -80,7 +75,6 @@ const Hub = (function () {
           <nav class="arcade-nav" aria-label="Основная навигация">${nav}</nav>
         </div>
         <div class="arcade-hud-right">
-          <select id="account" class="arcade-select arcade-select--compact hide-on-mobile" aria-label="Аккаунт">${options}</select>
           <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">Войти</button>
           <button class="arcade-btn arcade-btn--xs" id="theme" type="button" title="Сменить светлую / тёмную тему" aria-label="Сменить тему">${themeIcon}</button>
           <button class="burger-btn" id="burgerBtn" type="button" aria-label="Открыть меню" aria-controls="mobileDrawer" aria-expanded="false">
@@ -92,15 +86,9 @@ const Hub = (function () {
       <nav class="mobile-drawer" id="mobileDrawer" aria-label="Мобильная навигация">
         ${nav}
         <div style="margin-top:auto;padding-top:12px;border-top:2px solid var(--border-dark);">
-          <label class="arcade-label" for="mobileAccount">АККАУНТ СЕССИИ</label>
-          <select id="mobileAccount" class="arcade-select">${options}</select>
           <button class="arcade-btn arcade-btn--block" id="mobileOpenAuthBtn" type="button">Войти</button>
         </div>
       </nav>`;
-    const account = document.getElementById("account");
-    const mobileAccount = document.getElementById("mobileAccount");
-    account.value = user.id || "";
-    mobileAccount.value = user.id || "";
     const burgerBtn = document.getElementById("burgerBtn");
     const drawer = document.getElementById("mobileDrawer");
     const backdrop = document.getElementById("mobileBackdrop");
@@ -113,26 +101,6 @@ const Hub = (function () {
     burgerBtn?.addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
     backdrop?.addEventListener("click", () => setDrawer(false));
     window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(() => location.reload()), () => setDrawer(false));
-    const switchAccount = async (selectEl) => {
-      selectEl.disabled = true;
-      try {
-        if (selectEl.value) {
-          const target = accounts.find((a) => a.id === Number(selectEl.value));
-          const session = await api.post("/api/auth/login", { email: target.email, password: "password" });
-          storage.setAuthSession(session.token, session.user);
-        } else storage.clearAuth();
-        location.reload();
-      } catch (err) {
-        notice(err.message);
-        selectEl.disabled = false;
-        selectEl.value = user.id || "";
-      }
-    };
-    account.onchange = () => switchAccount(account);
-    mobileAccount.onchange = () => {
-      setDrawer(false);
-      switchAccount(mobileAccount);
-    };
     document.getElementById("theme").onclick = () => {
       const next = storage.toggleTheme();
       const btn = document.getElementById("theme");

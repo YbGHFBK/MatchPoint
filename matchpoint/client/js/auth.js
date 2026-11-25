@@ -21,19 +21,13 @@
           <label class="arcade-label" for="authNickname">НИКНЕЙМ</label>
           <input class="arcade-input" id="authNickname" type="text" placeholder="Ваш игровой ник">
         </div>
-        <div class="arcade-form-group"><label class="arcade-label" for="authEmail">EMAIL</label><input class="arcade-input" id="authEmail" type="email" value="admin@matchpoint.dev" required></div>
-        <div class="arcade-form-group"><label class="arcade-label" for="authPassword">ПАРОЛЬ</label><input class="arcade-input" id="authPassword" type="password" value="password" required></div>
+        <div class="arcade-form-group"><label class="arcade-label" for="authEmail">EMAIL</label><input class="arcade-input" id="authEmail" type="email" autocomplete="email" required></div>
+        <div class="arcade-form-group"><label class="arcade-label" for="authPassword">ПАРОЛЬ</label><input class="arcade-input" id="authPassword" type="password" required></div>
         <button type="submit" class="arcade-btn-mint arcade-btn--block" id="authSubmitBtn">ВОЙТИ В АККАУНТ</button>
       </form>
-      <div class="demo-accounts-box">
-        <div>Быстрая подстановка (пароль: <code>password</code>):</div>
-        <div class="demo-accounts-grid">
-          <button type="button" class="btn btn--ghost" data-seed-email="admin@matchpoint.dev">AdminRoot</button>
-          <button type="button" class="btn btn--ghost" data-seed-email="mod@matchpoint.dev">ModWatch</button>
-          <button type="button" class="btn btn--ghost" data-seed-email="org@matchpoint.dev">OrgCyber</button>
-          <button type="button" class="btn btn--ghost" data-seed-email="captain@matchpoint.dev">KuroCap</button>
-          <button type="button" class="btn btn--ghost" data-seed-email="player@matchpoint.dev">ShadowStep</button>
-        </div>
+      <div class="arcade-form-group">
+        <label class="arcade-label" for="demoAccount">Быстрый вход для демонстрации</label>
+        <select id="demoAccount" class="arcade-select"><option value="">Выберите демо-профиль</option></select>
       </div>
     </div>
   </div>`;
@@ -99,22 +93,29 @@
       });
     });
 
-    modal.querySelectorAll("[data-seed-email]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.getElementById("authEmail").value = btn.getAttribute("data-seed-email");
-        document.getElementById("authPassword").value = "password";
-      });
+    const demoAccount = document.getElementById("demoAccount");
+    for (const account of global.MPApi.SEED_ACCOUNTS.filter(a => a.status !== "banned")) {
+      demoAccount.add(new Option(`${account.nickname} (${account.role})`, account.id));
+    }
+    demoAccount.addEventListener("change", () => {
+      if (demoAccount.value) authenticate(demoAccount.value);
+    });
+    document.getElementById("authForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      authenticate();
     });
 
-    document.getElementById("authForm")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
+    async function authenticate(demoId) {
       const email = document.getElementById("authEmail").value.trim();
       const password = document.getElementById("authPassword").value;
       const nickname = document.getElementById("authNickname")?.value.trim() || "";
       const submitBtn = document.getElementById("authSubmitBtn");
-      if (submitBtn) submitBtn.disabled = true;
+      if (submitBtn.disabled) return;
+      submitBtn.disabled = true;
+      demoAccount.disabled = true;
       try {
-        const res = mode === "register"
+        const res = demoId ? await global.MPApi.switchSeedAccount(Number(demoId))
+          : mode === "register"
           ? await global.MPApi.register({ email, password, nickname })
           : await global.MPApi.login({ email, password });
         closeAuthModal();
@@ -126,9 +127,11 @@
       } catch (err) {
         showToast(`⚠️ ${err.message}`);
       } finally {
-        if (submitBtn) submitBtn.disabled = false;
+        submitBtn.disabled = false;
+        demoAccount.disabled = false;
+        demoAccount.value = "";
       }
-    });
+    }
 
     modal.querySelectorAll("[data-close-modal]").forEach((btn) => {
       btn.addEventListener("click", closeAuthModal);
@@ -177,7 +180,7 @@
     bindAccountButtons,
 
     /** Программное открытие (например, при попытке действия, требующего входа). */
-    openLoginModal(onAuthSuccess) {
+    openLoginModal(onAuthSuccess = () => global.location.reload()) {
       injectModalIfNeeded();
       initModalInteractions(onAuthSuccess);
       openAuthModal();

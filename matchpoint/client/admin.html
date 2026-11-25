@@ -102,15 +102,6 @@
       </div>
 
       <div class="arcade-hud-right">
-        <select class="arcade-select arcade-select--compact hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта">
-          <option value="5">ShadowStep (player)</option>
-          <option value="4">KuroCap (captain)</option>
-          <option value="6">GuestDemo (guest)</option>
-          <option value="3">OrgCyber (organizer)</option>
-          <option value="2">ModWatch (moderator)</option>
-          <option value="1">AdminRoot (admin)</option>
-          <option value="13">TiltKing (muted • 2.10)</option>
-        </select>
 
         <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">Войти</button>
         <button class="arcade-btn arcade-btn--xs" id="themeToggleBtn" type="button" title="Сменить светлую / тёмную тему" aria-label="Сменить тему">☀️</button>
@@ -128,16 +119,6 @@
     <a href="teams.html" class="arcade-nav__link">КОМАНДЫ</a>
     <a href="admin.html" class="arcade-nav__link is-active">▶ АДМИН</a>
     <div style="margin-top:auto;padding-top:12px;border-top:2px solid var(--border-dark);">
-      <label class="arcade-label" for="mobileRoleSwitcher">АККАУНТ СЕССИИ</label>
-      <select class="arcade-select" id="mobileRoleSwitcher">
-        <option value="5">ShadowStep (player)</option>
-        <option value="4">KuroCap (captain)</option>
-        <option value="6">GuestDemo (guest)</option>
-        <option value="3">OrgCyber (organizer)</option>
-        <option value="2">ModWatch (moderator)</option>
-        <option value="1">AdminRoot (admin)</option>
-        <option value="13">TiltKing (muted • 2.10)</option>
-      </select>
       <button type="button" class="arcade-btn arcade-btn--block" id="mobileOpenAuthBtn">Войти</button>
     </div>
   </nav>
@@ -151,10 +132,6 @@
         <p class="text-dim text-sm" id="accessDeniedText" style="margin:12px 0 22px;">
           Текущая роль не имеет прав доступа к очереди жалоб и управлению платформой.
         </p>
-        <div class="action-row" style="justify-content:center;">
-          <button type="button" class="arcade-btn" data-quick-switch="2">🛡 MODWATCH (MOD)</button>
-          <button type="button" class="arcade-btn-gold" data-quick-switch="1">👑 ADMINROOT (ADMIN)</button>
-        </div>
       </section>
 
       <div id="adminWorkspace" style="display:none;">

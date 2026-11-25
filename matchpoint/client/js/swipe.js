@@ -22,7 +22,6 @@
     reportTargetCard: null,
     chatMessagesByUser: {},
     isAnimating: false,
-    authMode: "login" // 'login' | 'register'
   };
 
   function esc(value) {
@@ -99,19 +98,6 @@
   }
 
   // ================= ШАПКА, ТЕМА, БУРГЕР-МЕНЮ И СЕССИЯ =================
-  function updateHeaderAuthUI() {
-    const user = window.MPStorage.getUser();
-    const roleSelect = document.getElementById("roleSwitcher");
-    const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-
-    if (roleSelect && Array.from(roleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
-      roleSelect.value = String(user.id);
-    }
-    if (mobileRoleSelect && Array.from(mobileRoleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
-      mobileRoleSelect.value = String(user.id);
-    }
-  }
-
   async function initHeaderAndSession() {
     const theme = window.MPStorage.initTheme();
     updateThemeBtn(theme);
@@ -135,32 +121,6 @@
         if (err.status === 401) window.MPStorage.clearAuth();
       }
     }
-
-    updateHeaderAuthUI();
-
-    const roleSelect = document.getElementById("roleSwitcher");
-    const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-
-    async function handleAccountSwitch(userIdValue) {
-      try {
-        const res = await window.MPApi.switchSeedAccount(Number(userIdValue));
-        window.MPStorage.clearViewedCards();
-        updateHeaderAuthUI();
-        renderSessionHistory();
-        await Promise.all([loadCards(), loadMatches()]);
-        const u = res.user;
-        const modeTag = res.source === "server" ? "JWT от PostgreSQL" : "02_seed.sql";
-        showToast(`👤 Аккаунт: @${u.nickname} (${u.role}${u.status === "muted" ? ", muted" : ""}) • ${modeTag}`);
-      } catch (err) {
-        showToast(`⚠️ ${err.message}`);
-      }
-    }
-
-    roleSelect?.addEventListener("change", () => handleAccountSwitch(roleSelect.value));
-    mobileRoleSelect?.addEventListener("change", () => {
-      setBurgerOpen(false);
-      handleAccountSwitch(mobileRoleSelect.value);
-    });
 
     // Адаптивное бургер-меню
     const burgerBtn = document.getElementById("burgerBtn");
@@ -393,7 +353,7 @@
     return pds[0];
   }
 
-  async function loadCards(ignoreSessionHistory = false) {
+  async function loadCards() {
     if (!window.MPStorage.isAuthenticated()) {
       state.cards = [];
       renderDeck();
@@ -401,10 +361,9 @@
     }
     const filters = window.MPStorage.getFilters();
     try {
-      const res = await window.MPApi.getCards(filters, ignoreSessionHistory);
-      const viewedKeys = ignoreSessionHistory
-        ? new Set()
-        : new Set(window.MPStorage.getViewedCards().map((v) => v.card_key));
+      const replay = window.MPStorage.getDeckReplay();
+      const res = await window.MPApi.getCards(filters, replay !== null);
+      const viewedKeys = new Set(replay ?? window.MPStorage.getViewedCardIds());
 
       const currentUserId = window.MPStorage.getUser()?.id || 0;
       state.cards = (res.cards || [])
@@ -432,7 +391,7 @@
           <h3>Войдите в аккаунт, чтобы смотреть анкеты</h3>
           <button type="button" class="arcade-btn-mint" id="deckLoginBtn">Войти</button>
         </div>`;
-      document.getElementById("deckLoginBtn").onclick = () => openModal("authModal");
+      document.getElementById("deckLoginBtn").onclick = () => window.MPAuth.openLoginModal();
       return;
     }
 
@@ -455,9 +414,9 @@
         </div>
       `;
       document.getElementById("reloadDeckBtn")?.addEventListener("click", () => {
-        window.MPStorage.clearViewedCards();
+        window.MPStorage.restartDeck();
         renderSessionHistory();
-        loadCards(true);
+        loadCards();
       });
       document.getElementById("emptyResetBtn")?.addEventListener("click", () => {
         const defaults = window.MPStorage.resetFilters();
@@ -971,11 +930,11 @@
       const viewer = window.MPStorage.getUser();
       if (!viewer || viewer.role === "guest") {
         showToast("🔒 Публикация вакансий доступна капитанам. Войдите через кнопку в шапке!");
-        openModal("authModal");
+        window.MPAuth.openLoginModal();
         return;
       }
       if (viewer.role !== "captain") {
-        showToast("🛡 Создавать команду и вакансию может только капитан. Смените аккаунт в шапке (например, KuroCap)!");
+        showToast("🛡 Создавать команду и вакансию может только капитан. Выберите демо-профиль капитана в форме входа (например, KuroCap)!");
         return;
       }
       openModal("draftModal");
@@ -1072,50 +1031,6 @@
       }
     });
 
-    // 4. Модалка реального входа / регистрации (/api/auth/login и /api/auth/register)
-    const authTabs = document.querySelectorAll("[data-auth-tab]");
-    const nicknameGroup = document.getElementById("authNicknameGroup");
-    const authSubmitBtn = document.getElementById("authSubmitBtn");
-
-    authTabs.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.authMode = btn.getAttribute("data-auth-tab");
-        authTabs.forEach((b) => b.classList.toggle("is-active", b === btn));
-        if (nicknameGroup) nicknameGroup.style.display = state.authMode === "register" ? "flex" : "none";
-        if (authSubmitBtn) {
-          authSubmitBtn.textContent = state.authMode === "register" ? "Зарегистрироваться" : "Войти в аккаунт";
-        }
-      });
-    });
-
-    document.querySelectorAll("[data-seed-email]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        document.getElementById("authEmail").value = btn.getAttribute("data-seed-email");
-        document.getElementById("authPassword").value = "password";
-      });
-    });
-
-    document.getElementById("authForm")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
-      const nickname = document.getElementById("authNickname")?.value.trim() || "";
-
-      try {
-        const res = state.authMode === "register"
-          ? await window.MPApi.register({ email, password, nickname })
-          : await window.MPApi.login({ email, password });
-
-        window.MPStorage.clearViewedCards();
-        updateHeaderAuthUI();
-        renderSessionHistory();
-        await Promise.all([loadCards(), loadMatches()]);
-        closeModal("authModal");
-        showToast(`✅ Вы вошли как @${res.user.nickname} (${res.source === "server" ? "PostgreSQL JWT" : "02_seed.sql"})`);
-      } catch (err) {
-        showToast(`⚠️ ${err.message}`);
-      }
-    });
   }
 
   // ================= ИСТОРИЯ ПРОСМОТРОВ В sessionStorage =================
@@ -1157,7 +1072,7 @@
 
     // Кнопка #btnReport удалена: жалоба теперь только через «!» на карточке (.js-card-report-btn)
 
-    window.MPAuth.bindAccountButtons(() => openModal("authModal"), () => setBurgerOpen(false));
+    window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(), () => setBurgerOpen(false));
 
     document.querySelectorAll("[data-right-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1169,9 +1084,9 @@
     });
 
     document.getElementById("clearHistoryBtn")?.addEventListener("click", () => {
-      window.MPStorage.clearViewedCards();
+      window.MPStorage.restartDeck();
       renderSessionHistory();
-      loadCards(true);
+      loadCards();
       showToast("🧹 История sessionStorage очищена");
     });
 

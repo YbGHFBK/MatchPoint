@@ -10,7 +10,6 @@
     currentProfile: null,
     viewingUserId: null, // null = собственный профиль
     selectedScore: 5,
-    authMode: "login",
     draftController: null
   };
 
@@ -100,18 +99,6 @@
     return null;
   }
 
-  function updateHeaderUI() {
-    const user = window.MPStorage.getUser();
-    const roleSelect = document.getElementById("roleSwitcher");
-    const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-    if (roleSelect && Array.from(roleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
-      roleSelect.value = String(user.id);
-    }
-    if (mobileRoleSelect && Array.from(mobileRoleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
-      mobileRoleSelect.value = String(user.id);
-    }
-  }
-
   function initHeaderControls() {
     const theme = window.MPStorage.initTheme();
     const themeBtn = document.getElementById("themeToggleBtn");
@@ -135,27 +122,7 @@
     burgerBtn?.addEventListener("click", () => toggleDrawer(!drawer.classList.contains("is-open")));
     backdrop?.addEventListener("click", () => toggleDrawer(false));
 
-    const handleSwitch = async (userId) => {
-      try {
-        await window.MPApi.switchSeedAccount(userId);
-        updateHeaderUI();
-        state.viewingUserId = null;
-        const inspectSel = document.getElementById("inspectProfileSelect");
-        if (inspectSel) inspectSel.value = "me";
-        await loadAll();
-        showToast(`Аккаунт переключён: ${window.MPStorage.getUser().nickname}`);
-      } catch (err) {
-        showToast(err.message || "Ошибка переключения аккаунта");
-      }
-    };
-
-    document.getElementById("roleSwitcher")?.addEventListener("change", (e) => handleSwitch(e.target.value));
-    document.getElementById("mobileRoleSwitcher")?.addEventListener("change", (e) => {
-      handleSwitch(e.target.value);
-      toggleDrawer(false);
-    });
-
-    window.MPAuth.bindAccountButtons(() => openModal("authModal"), () => toggleDrawer(false));
+    window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(() => location.assign("profile.html")), () => toggleDrawer(false));
 
     document.querySelectorAll("[data-close-modal]").forEach((btn) => {
       btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
@@ -164,36 +131,6 @@
       ov.addEventListener("click", (e) => { if (e.target === ov) closeModal(ov.id); });
     });
 
-    document.querySelectorAll("[data-auth-tab]").forEach((tab) => {
-      tab.addEventListener("click", () => {
-        state.authMode = tab.dataset.authTab;
-        document.querySelectorAll("[data-auth-tab]").forEach((t) => t.classList.toggle("is-active", t === tab));
-        document.getElementById("authNicknameGroup").style.display = state.authMode === "register" ? "block" : "none";
-        document.getElementById("authSubmitBtn").textContent = state.authMode === "register" ? "СОЗДАТЬ АККАУНТ" : "ВОЙТИ В АККАУНТ";
-      });
-    });
-
-    document.getElementById("authForm")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = document.getElementById("authEmail").value.trim();
-      const password = document.getElementById("authPassword").value;
-      const nickname = document.getElementById("authNickname").value.trim();
-      try {
-        if (state.authMode === "register") {
-          await window.MPApi.register({ email, password, nickname });
-          showToast("Регистрация выполнена");
-        } else {
-          await window.MPApi.login({ email, password });
-          showToast("Вход выполнен");
-        }
-        closeModal("authModal");
-        updateHeaderUI();
-        state.viewingUserId = null;
-        await loadAll();
-      } catch (err) {
-        showToast(err.message || "Ошибка авторизации");
-      }
-    });
   }
 
   function renderAvatar(avatarUrl, nickname) {
@@ -496,7 +433,6 @@
   function bindProfileEvents() {
     document.getElementById("logoutBtn").addEventListener("click", () => {
       window.MPStorage.clearAuth();
-      window.MPStorage.clearViewedCards();
       window.location.replace("index.html");
     });
     document.getElementById("openEditProfileBtn")?.addEventListener("click", () => {
@@ -583,7 +519,6 @@
         });
         if (state.draftController?.clear) state.draftController.clear();
         closeModal("editProfileModal");
-        updateHeaderUI();
         showToast("Профиль обновлён");
         await loadAll();
       } catch (err) {
@@ -667,7 +602,6 @@
     }
 
     initHeaderControls();
-    updateHeaderUI();
     bindProfileEvents();
     loadAll();
   });

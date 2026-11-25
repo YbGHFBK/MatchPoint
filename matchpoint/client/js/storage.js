@@ -21,6 +21,7 @@
     LEGACY_USER: "user",
     THEME: "mp_theme",
     FILTERS: "mp_swipe_filters_v3",
+    DECK_REPLAY: "mp_deck_replay",
     HISTORY: "mp_session_viewed_cards_v3",
     DRAFT_PREFIX: "mp_form_draft_"
   });
@@ -308,6 +309,7 @@
     },
 
     clearAuth() {
+      this.clearViewedCards();
       local.removeItem(KEYS.TOKEN);
       local.removeItem(KEYS.LEGACY_TOKEN);
       local.removeItem(KEYS.USER);
@@ -510,6 +512,17 @@
     // ========================================================================
     // 5. ИСТОРИЯ ПРОСМОТРЕННЫХ КАРТОЧЕК ТЕКУЩЕЙ СЕССИИ (sessionStorage)
     // ========================================================================
+    getDeckReplay() {
+      const replay = readJSON(session, KEYS.DECK_REPLAY, null);
+      return replay?.userId === this.getUser().id ? replay.seen : null;
+    },
+
+    restartDeck() {
+      if (!this.isAuthenticated()) return;
+      this.clearViewedCards();
+      writeJSON(session, KEYS.DECK_REPLAY, { userId: this.getUser().id, seen: [] });
+    },
+
     getViewedCards() {
       const list = readJSON(session, KEYS.HISTORY, []);
       return Array.isArray(list) ? list : [];
@@ -546,6 +559,11 @@
         cardSnapshot: card
       });
 
+      const replay = this.getDeckReplay();
+      if (replay && !replay.includes(card.card_key)) {
+        replay.push(card.card_key);
+        writeJSON(session, KEYS.DECK_REPLAY, { userId: this.getUser().id, seen: replay });
+      }
       const trimmed = list.slice(0, MAX_HISTORY_ITEMS);
       writeJSON(session, KEYS.HISTORY, trimmed);
       emitEvent("mp:history-change", { count: trimmed.length });
@@ -556,6 +574,10 @@
       const list = this.getViewedCards();
       if (!list.length) return null;
       const last = list.shift();
+      const replay = this.getDeckReplay();
+      if (replay) {
+        writeJSON(session, KEYS.DECK_REPLAY, { userId: this.getUser().id, seen: replay.filter(key => key !== last.card_key) });
+      }
       writeJSON(session, KEYS.HISTORY, list);
       emitEvent("mp:history-change", { count: list.length });
       return last;
@@ -572,6 +594,7 @@
     },
 
     clearViewedCards() {
+      session.removeItem(KEYS.DECK_REPLAY);
       session.removeItem(KEYS.HISTORY);
       emitEvent("mp:history-change", { count: 0 });
     }

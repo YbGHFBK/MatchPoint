@@ -535,15 +535,6 @@
       </div>
 
       <div class="arcade-hud-right">
-        <select class="arcade-select arcade-select--compact hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта">
-          <option value="5">ShadowStep (player)</option>
-          <option value="4">KuroCap (captain)</option>
-          <option value="6">GuestDemo (guest)</option>
-          <option value="3">OrgCyber (organizer)</option>
-          <option value="2">ModWatch (moderator)</option>
-          <option value="1">AdminRoot (admin)</option>
-          <option value="13">TiltKing (muted • 2.10)</option>
-        </select>
 
         <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">Войти</button>
         <button class="arcade-btn arcade-btn--xs" id="themeToggleBtn" type="button" title="Сменить светлую / тёмную тему" aria-label="Сменить тему">☀️</button>
@@ -561,16 +552,6 @@
     <a href="teams.html" class="arcade-nav__link">КОМАНДЫ</a>
     <a href="admin.html" class="arcade-nav__link">АДМИН</a>
     <div style="margin-top:auto;padding-top:12px;border-top:2px solid var(--border-dark);">
-      <label class="arcade-label" for="mobileRoleSwitcher">АККАУНТ СЕССИИ</label>
-      <select class="arcade-select" id="mobileRoleSwitcher" style="margin-bottom:10px;">
-        <option value="5">ShadowStep (player)</option>
-        <option value="4">KuroCap (captain)</option>
-        <option value="6">GuestDemo (guest)</option>
-        <option value="3">OrgCyber (organizer)</option>
-        <option value="2">ModWatch (moderator)</option>
-        <option value="1">AdminRoot (admin)</option>
-        <option value="13">TiltKing (muted • 2.10)</option>
-      </select>
       <button class="arcade-btn-gold arcade-btn--block" id="mobileOpenAuthBtn" type="button">Войти</button>
     </div>
   </nav>
@@ -830,33 +811,6 @@
           <textarea class="arcade-textarea" id="reportReason" rows="3" required minlength="5" placeholder="Опишите нарушение..."></textarea>
         </div>
         <button type="submit" class="arcade-btn-coral arcade-btn--block">ОТПРАВИТЬ МОДЕРАТОРАМ</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- МОДАЛКА АВТОРИЗАЦИИ -->
-  <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
-    <div class="modal">
-      <button type="button" class="arcade-btn arcade-btn--xs modal__close" data-close-modal="authModal" aria-label="Закрыть">×</button>
-      <h3 class="font-pixel text-gold" id="authModalTitle" style="font-size:0.74rem;margin:0 0 12px;">🔐 АККАУНТ MATCHPOINT</h3>
-      <div class="right-tabs" style="margin-bottom:14px;">
-        <button type="button" class="arcade-btn arcade-btn--xs is-active" data-auth-tab="login">ВХОД</button>
-        <button type="button" class="arcade-btn arcade-btn--xs" data-auth-tab="register">РЕГИСТРАЦИЯ</button>
-      </div>
-      <form id="authForm">
-        <div class="arcade-form-group" id="authNicknameGroup" style="display:none;">
-          <label class="arcade-label" for="authNickname">НИКНЕЙМ</label>
-          <input class="arcade-input" id="authNickname" type="text" placeholder="Ваш игровой ник">
-        </div>
-        <div class="arcade-form-group">
-          <label class="arcade-label" for="authEmail">EMAIL</label>
-          <input class="arcade-input" id="authEmail" type="email" value="player@matchpoint.dev" required>
-        </div>
-        <div class="arcade-form-group">
-          <label class="arcade-label" for="authPassword">ПАРОЛЬ</label>
-          <input class="arcade-input" id="authPassword" type="password" value="password" required>
-        </div>
-        <button type="submit" class="arcade-btn-mint arcade-btn--block" id="authSubmitBtn">ВОЙТИ В АККАУНТ</button>
       </form>
     </div>
   </div>
