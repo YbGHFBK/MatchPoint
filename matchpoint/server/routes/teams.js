@@ -15,7 +15,12 @@ router.post(
   async (req, res, next) => {
     try {
       const userId = getAuthUserId(req);
-      const { name, discipline_id, description = null, looking_for_role_id = null } = req.body;
+      const {
+        name,
+        discipline_id,
+        description = null,
+        looking_for_role_id = null,
+      } = req.body;
 
       if (
         typeof name !== "string" ||
@@ -26,14 +31,22 @@ router.post(
           .status(400)
           .json({ error: "Укажите корректное название команды" });
       }
-      if (!Number.isInteger(discipline_id) || discipline_id <= 0 || discipline_id > 2147483647) {
+      if (
+        !Number.isInteger(discipline_id) ||
+        discipline_id <= 0 ||
+        discipline_id > 2147483647
+      ) {
         return res.status(400).json({ error: "Некорректный discipline_id" });
       }
       if (description !== null && typeof description !== "string") {
         return res.status(400).json({ error: "Описание должно быть строкой" });
       }
-      if (looking_for_role_id !== null && (!Number.isInteger(looking_for_role_id) ||
-          looking_for_role_id <= 0 || looking_for_role_id > 2147483647)) {
+      if (
+        looking_for_role_id !== null &&
+        (!Number.isInteger(looking_for_role_id) ||
+          looking_for_role_id <= 0 ||
+          looking_for_role_id > 2147483647)
+      ) {
         return res.status(400).json({ error: "Некорректный ID роли" });
       }
 
@@ -48,13 +61,21 @@ router.post(
              SELECT 1 FROM discipline_roles WHERE id = $5 AND discipline_id = $2
            )
            RETURNING *`,
-          [userId, discipline_id, name.trim(), description?.trim() || null, looking_for_role_id],
+          [
+            userId,
+            discipline_id,
+            name.trim(),
+            description?.trim() || null,
+            looking_for_role_id,
+          ],
         );
 
         const team = teamRes.rows[0];
         if (!team) {
           await client.query("ROLLBACK");
-          return res.status(400).json({ error: "Роль не найдена в дисциплине команды" });
+          return res
+            .status(400)
+            .json({ error: "Роль не найдена в дисциплине команды" });
         }
 
         await client.query(
@@ -71,7 +92,10 @@ router.post(
         if (err.code === "23505") {
           return res.status(409).json({ error: "Название команды уже занято" });
         }
-        if (err.code === "23503" && err.constraint === "teams_discipline_id_fkey") {
+        if (
+          err.code === "23503" &&
+          err.constraint === "teams_discipline_id_fkey"
+        ) {
           return res.status(400).json({ error: "Дисциплина не найдена" });
         }
         next(err);
@@ -177,8 +201,13 @@ router.patch(
     if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 2147483647) {
       return res.status(400).json({ error: "Некорректный ID команды" });
     }
-    if (roleId !== null && (!Number.isInteger(roleId) || roleId <= 0 || roleId > 2147483647)) {
-      return res.status(400).json({ error: "Укажите ID роли или null для закрытия вакансии" });
+    if (
+      roleId !== null &&
+      (!Number.isInteger(roleId) || roleId <= 0 || roleId > 2147483647)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Укажите ID роли или null для закрытия вакансии" });
     }
 
     try {
@@ -197,14 +226,21 @@ router.patch(
         return res.json({ team: rows[0] });
       }
 
-      const { rows: teams } = await db.query("SELECT captain_id FROM teams WHERE id = $1", [teamId]);
+      const { rows: teams } = await db.query(
+        "SELECT captain_id FROM teams WHERE id = $1",
+        [teamId],
+      );
       if (!teams.length) {
         return res.status(404).json({ error: "Команда не найдена" });
       }
       if (teams[0].captain_id !== captainId) {
-        return res.status(403).json({ error: "Только капитан этой команды может менять вакансию" });
+        return res
+          .status(403)
+          .json({ error: "Только капитан этой команды может менять вакансию" });
       }
-      return res.status(400).json({ error: "Роль не найдена в дисциплине команды" });
+      return res
+        .status(400)
+        .json({ error: "Роль не найдена в дисциплине команды" });
     } catch (err) {
       next(err);
     }
@@ -243,7 +279,9 @@ router.post("/:id/applications", requireAuth, async (req, res, next) => {
       return res.status(409).json({ error: "Набор в команду закрыт" });
     }
     if (!team.application) {
-      return res.status(409).json({ error: "Вы уже подали заявку или состоите в команде" });
+      return res
+        .status(409)
+        .json({ error: "Вы уже подали заявку или состоите в команде" });
     }
     return res.status(201).json({ application: team.application });
   } catch (err) {
@@ -267,7 +305,7 @@ async function getTeamMembers(teamId, status) {
 router.get("/", async (req, res, next) => {
   try {
     const { rows } = await db.query(
-      `SELECT t.id, t.name, t.discipline_id, d.name AS discipline_name,
+      `SELECT t.id, t.name, t.captain_id, t.discipline_id, d.name AS discipline_name,
               t.looking_for_role_id, r.name AS looking_for_role_name,
               (SELECT COUNT(*)::int FROM team_members m
                WHERE m.team_id = t.id AND m.status = 'accepted') AS members_count
@@ -314,21 +352,32 @@ router.get("/:id", validateTeamId, async (req, res, next) => {
   }
 });
 
-router.get("/:id/applications", requireAuth, requireRole("captain"), validateTeamId, async (req, res, next) => {
-  const { teamId } = res.locals;
-  try {
-    const { rows } = await db.query("SELECT captain_id FROM teams WHERE id = $1", [teamId]);
-    if (!rows.length) {
-      return res.status(404).json({ error: "Команда не найдена" });
+router.get(
+  "/:id/applications",
+  requireAuth,
+  requireRole("captain"),
+  validateTeamId,
+  async (req, res, next) => {
+    const { teamId } = res.locals;
+    try {
+      const { rows } = await db.query(
+        "SELECT captain_id FROM teams WHERE id = $1",
+        [teamId],
+      );
+      if (!rows.length) {
+        return res.status(404).json({ error: "Команда не найдена" });
+      }
+      if (rows[0].captain_id !== getAuthUserId(req)) {
+        return res
+          .status(403)
+          .json({ error: "Только капитан этой команды может смотреть заявки" });
+      }
+      const applications = await getTeamMembers(teamId, "pending");
+      return res.json({ applications });
+    } catch (err) {
+      next(err);
     }
-    if (rows[0].captain_id !== getAuthUserId(req)) {
-      return res.status(403).json({ error: "Только капитан этой команды может смотреть заявки" });
-    }
-    const applications = await getTeamMembers(teamId, "pending");
-    return res.json({ applications });
-  } catch (err) {
-    next(err);
-  }
-});
+  },
+);
 
 module.exports = router;
