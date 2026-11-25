@@ -1,24 +1,25 @@
+require('dotenv').config();
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 
 const db = require('./db/database');
+const { requestLogger, auditLogger, errorLogger } = require('./middleware/logger');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const swipesRoutes = require('./routes/swipes');
-<<<<<<< HEAD
-const { adminRouter, reportsRouter, fetchAllDictionaries } = require('./routes/admin');
-=======
 const teamsRoutes = require('./routes/teams');
-
->>>>>>> origin/main
+const eventsRoutes = require('./routes/events');
+const { adminRouter, reportsRouter, fetchAllDictionaries } = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
+app.use(requestLogger);
+app.use('/api/events/:id/result', express.json({ limit: '7mb' }));
 app.use(express.json());
+app.use(auditLogger);
 app.use(express.static(path.join(__dirname, '..', 'client')));
 
 app.get('/api/health', async (req, res) => {
@@ -42,21 +43,16 @@ app.get('/api/dictionaries', async (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/swipes', swipesRoutes);
-<<<<<<< HEAD
+app.use('/api/teams', teamsRoutes);
+app.use('/api/events', eventsRoutes);
 app.use('/api/reports', reportsRouter);
 app.use('/api/admin', adminRouter);
-=======
-app.use('/api/teams', teamsRoutes);
->>>>>>> origin/main
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint не найден' });
 });
 
-app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ error: 'Внутренняя ошибка сервера' });
-});
+app.use(errorLogger);
 
 if (require.main === module) {
   app.listen(PORT, () => {

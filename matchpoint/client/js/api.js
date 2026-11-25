@@ -782,11 +782,24 @@
       const query = qs.toString() ? `?${qs.toString()}` : "";
 
       try {
-        return await tryEndpoints([
+        const response = await tryEndpoints([
           () => this.get(`/api/swipes/feed${query}`),
           () => this.get(`/api/swipes/cards${query}`),
           () => this.get(`/api/cards${query}`)
         ]);
+        if (Array.isArray(response.cards)) return response;
+
+        const cards = response.candidates
+          .filter(() => filters.card_type !== "team")
+          .filter((user) => !filters.prime_time || (user.prime_time || "").includes(filters.prime_time))
+          .map((user) => ({
+            ...user,
+            card_key: `player_${user.id}`,
+            card_type: "player",
+            user_id: user.id,
+            profile_disciplines: user.disciplines || []
+          }));
+        return { cards };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
         const viewerId = global.MPStorage?.getUser()?.id || 5;
@@ -895,22 +908,7 @@
         looking_for_role_id: Number(looking_for_role_id) || null,
         description: String(description || "").trim()
       };
-      try {
-        return await this.post("/api/teams", payload);
-      } catch (err) {
-        if (!isRouteMissing(err)) throw err;
-        const viewerId = global.MPStorage?.getUser()?.id || 4;
-        const runtime = loadSeedRuntime();
-        const created = {
-          id: runtime.teams.length + 1,
-          captain_id: viewerId,
-          ...payload,
-          members_count: 1
-        };
-        runtime.teams.push(created);
-        saveSeedRuntime(runtime);
-        return { ok: true, team: created, source: "seed" };
-      }
+      return this.post("/api/teams", payload);
     },
 
     // --- Жалоба модераторам (reports) ---

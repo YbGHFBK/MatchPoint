@@ -182,17 +182,18 @@ CREATE TABLE reports (
 CREATE TABLE IF NOT EXISTS audit_logs (
     id SERIAL PRIMARY KEY,
     actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-    action VARCHAR(60) NOT NULL,
-    target_type VARCHAR(40) NOT NULL,
+    action VARCHAR(100) NOT NULL,
+    target_type VARCHAR(50),
     target_id INTEGER,
     details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    ip_address VARCHAR(45),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at DESC);
-
 -- Базовые индексы под частые выборки
-CREATE INDEX idx_profile_disc_lookup ON profile_disciplines (discipline_id, role_id, rank_id);
-CREATE INDEX idx_swipes_to_user ON swipes (to_user_id, is_like);
-CREATE INDEX idx_events_type_status ON events (event_type, status, start_at);
-CREATE INDEX idx_reports_status ON reports (status);
+CREATE INDEX IF NOT EXISTS idx_profile_disc_lookup ON profile_disciplines (discipline_id, role_id, rank_id);
+CREATE INDEX IF NOT EXISTS idx_swipes_to_user ON swipes (to_user_id, is_like);
+CREATE INDEX IF NOT EXISTS idx_events_type_status ON events (event_type, status, start_at);
+CREATE INDEX IF NOT EXISTS idx_reports_status ON reports (status);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_actor ON audit_logs (actor_id);
