@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const swipesRoutes = require('./routes/swipes');
 const teamsRoutes = require('./routes/teams');
+const eventsRoutes = require('./routes/events');
 const { adminRouter, reportsRouter, fetchAllDictionaries } = require('./routes/admin');
 
 const app = express();
@@ -16,6 +17,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(requestLogger);
+app.use('/api/events/:id/result', express.json({ limit: '7mb' }));
 app.use(express.json());
 app.use(auditLogger);
 app.use(express.static(path.join(__dirname, '..', 'client')));
@@ -42,6 +44,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/swipes', swipesRoutes);
 app.use('/api/teams', teamsRoutes);
+app.use('/api/events', eventsRoutes);
 app.use('/api/reports', reportsRouter);
 app.use('/api/admin', adminRouter);
 
