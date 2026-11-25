@@ -591,6 +591,33 @@
     });
   }
 
+  function normalizeServerMatch(raw) {
+    if (!raw) return null;
+    if (raw.partner && raw.partner.user_id) return raw;
+    const u = raw.user || raw.partner || {};
+    const uid = Number(u.id ?? u.user_id);
+    const firstDisc = Array.isArray(u.disciplines) && u.disciplines.length ? u.disciplines[0] : {};
+    return {
+      id: raw.match_id ?? raw.id,
+      match_id: raw.match_id ?? raw.id,
+      created_at: raw.matched_at ?? raw.created_at,
+      partner: {
+        user_id: uid,
+        nickname: u.nickname || `User #${uid}`,
+        avatar_url: u.avatar_url || null,
+        gradient: GRADIENTS[uid % GRADIENTS.length],
+        prime_time: u.prime_time || "",
+        trust_score: Number(u.trust_score ?? 5.0),
+        discipline_name: u.discipline_name || firstDisc.discipline_name || "",
+        role_name: u.role_name || firstDisc.role_name || "",
+        rank_name: u.rank_name || firstDisc.rank_name || "",
+        contacts: u.contacts || {},
+        external_links: u.external_links || {},
+        greeting: `Привет от @${u.nickname || "тиммейта"}! Отличный мэтч, спишемся и пойдём в лобби?`
+      }
+    };
+  }
+
   function buildMatchDto(runtime, matchRow, viewerId) {
     const partnerId = matchRow.user1_id === viewerId ? matchRow.user2_id : matchRow.user1_id;
     const acc = SEED_ACCOUNTS.find((u) => u.id === partnerId) || {};
@@ -1348,10 +1375,16 @@
       };
 
       try {
-        return await tryEndpoints([
+        const res = await tryEndpoints([
           () => this.post("/api/swipes", payload),
           () => this.post("/api/swipe", payload)
         ]);
+        const matched = Boolean(res?.matched ?? res?.is_match);
+        return {
+          ...res,
+          matched,
+          match: res?.match ? normalizeServerMatch(res.match) : null
+        };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
 
@@ -1429,10 +1462,14 @@
     // --- Список взаимных мэтчей (matches + раскрытый profiles.contacts) ---
     async getMatches() {
       try {
-        return await tryEndpoints([
+        const res = await tryEndpoints([
           () => this.get("/api/swipes/matches"),
           () => this.get("/api/matches")
         ]);
+        return {
+          ...res,
+          matches: (res?.matches || []).map(normalizeServerMatch).filter(Boolean)
+        };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
         const viewerId = global.MPStorage?.getUser()?.id || 5;

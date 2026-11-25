@@ -1,4 +1,3 @@
-
 /* ==========================================================================
    MatchPoint — Панель Модератора и Администратора (client/js/admin.js)
    ========================================================================== */
@@ -11,8 +10,30 @@
   const state = {
     activeTab: "moderation",
     dictionaries: { disciplines: [], discipline_roles: [], ranks: [], locations: [] },
-    stats: null
+    stats: null,
+    users: [],
+    auditLogs: []
   };
+
+  function downloadCsv(filename, headers, rows) {
+    const escapeCell = (val) => {
+      const str = String(val ?? "");
+      return /[",;\n\r]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const lines = [
+      headers.map(escapeCell).join(","),
+      ...rows.map((r) => r.map(escapeCell).join(","))
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
 
   function esc(val) {
     return String(val ?? "").replace(/[&<>"']/g, (ch) => ({
@@ -230,6 +251,7 @@
       status: document.getElementById("userStatusFilter")?.value || "all"
     };
     const { users } = await window.MPApi.getAdminUsers(filters);
+    state.users = users || [];
     const tbody = document.getElementById("usersTableBody");
     const meId = Number(currentUser().id);
 
@@ -405,12 +427,27 @@
     });
   }
 
-  async function loadAuditLogs() {
-    if (!isAdmin()) return;
-    const { logs } = await window.MPApi.getAdminLogs();
+  function getFilteredAuditLogs() {
+    const q = (document.getElementById("auditSearchInput")?.value || "").trim().toLowerCase();
+    if (!q) return state.auditLogs;
+    return state.auditLogs.filter((l) => {
+      const hay = [
+        l.actor_nickname || `User #${l.actor_id}`,
+        l.action,
+        l.target_type,
+        l.target_id,
+        JSON.stringify(l.details || {})
+      ].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function renderAuditLogs() {
     const tbody = document.getElementById("auditLogsBody");
-    if (!logs?.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Записей в журнале пока нет.</td></tr>';
+    if (!tbody) return;
+    const logs = getFilteredAuditLogs();
+    if (!logs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Записей в журнале не найдено.</td></tr>';
       return;
     }
     tbody.innerHTML = logs.map((l) => `
@@ -422,6 +459,13 @@
         <td class="text-xs text-mono">${esc(JSON.stringify(l.details || {}))}</td>
       </tr>
     `).join("");
+  }
+
+  async function loadAuditLogs() {
+    if (!isAdmin()) return;
+    const { logs } = await window.MPApi.getAdminLogs();
+    state.auditLogs = logs || [];
+    renderAuditLogs();
   }
 
   async function refreshAll() {
@@ -565,6 +609,52 @@
         showToast(err.message || "Ошибка добавления локации");
       }
     });
+
+    document.getElementById("auditSearchInput")?.addEventListener("input", () => {
+      renderAuditLogs();
+    });
+
+    document.getElementById("exportUsersCsvBtn")?.addEventListener("click", () => {
+      if (!state.users.length) {
+        showToast("Нет пользователей для экспорта");
+        return;
+      }
+      downloadCsv(
+        "matchpoint_users.csv",
+        ["ID", "Nickname", "Email", "Role", "Status", "Trust Score", "Verified Organizer"],
+        state.users.map((u) => [
+          u.id,
+          u.nickname,
+          u.email || "",
+          u.role,
+          u.status,
+          u.trust_score ?? "",
+          u.verified_organizer ? "yes" : "no"
+        ])
+      );
+      showToast(`Экспортировано пользователей: ${state.users.length}`);
+    });
+
+    document.getElementById("exportLogsCsvBtn")?.addEventListener("click", () => {
+      const logs = getFilteredAuditLogs();
+      if (!logs.length) {
+        showToast("Нет записей аудита для экспорта");
+        return;
+      }
+      downloadCsv(
+        "matchpoint_audit_logs.csv",
+        ["Date", "Actor", "Action", "Target Type", "Target ID", "Details"],
+        logs.map((l) => [
+          l.created_at,
+          l.actor_nickname || `User #${l.actor_id}`,
+          l.action,
+          l.target_type || "",
+          l.target_id ?? "",
+          JSON.stringify(l.details || {})
+        ])
+      );
+      showToast(`Экспортировано записей журнала: ${logs.length}`);
+    });
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -572,4 +662,3 @@
     refreshAll();
   });
 })();
-
