@@ -7,7 +7,7 @@ const db = require('./db/database');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const swipesRoutes = require('./routes/swipes');
-
+const { adminRouter, reportsRouter, fetchAllDictionaries } = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,9 +25,20 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+app.get('/api/dictionaries', async (req, res, next) => {
+  try {
+    const data = await fetchAllDictionaries();
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/swipes', swipesRoutes);
+app.use('/api/reports', reportsRouter);
+app.use('/api/admin', adminRouter);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint не найден' });
@@ -38,6 +49,10 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Внутренняя ошибка сервера' });
 });
 
-app.listen(PORT, () => {
-  console.log(`MatchPoint server запущен: http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`MatchPoint server запущен: http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;

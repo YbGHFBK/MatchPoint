@@ -544,6 +544,7 @@
 
       try {
         return await tryEndpoints([
+          () => this.get(`/api/swipes/feed${query}`),
           () => this.get(`/api/swipes/cards${query}`),
           () => this.get(`/api/cards${query}`)
         ]);
@@ -695,6 +696,555 @@
       }
     }
   };
+// ========================================================================
+  // РАСШИРЕНИЕ API: ПРОФИЛИ, TRUST FACTOR, МОДЕРАЦИЯ И АДМИН-ПАНЕЛЬ
+  // ========================================================================
+  const ADMIN_SEED_KEY = "mp_admin_profile_seed_v1";
 
+  function loadExtendedSeed() {
+    try {
+      if (global.sessionStorage) {
+        const raw = global.sessionStorage.getItem(ADMIN_SEED_KEY);
+        if (raw) return JSON.parse(raw);
+      }
+    } catch (_) {}
+
+    const initial = {
+      accounts: SEED_ACCOUNTS.map((a) => ({
+        ...a,
+        contacts: { ...(a.contacts || {}) },
+        external_links: { ...(a.external_links || {}) },
+        ban_until: a.status === "muted" ? new Date(Date.now() + 72 * 3600 * 1000).toISOString() : null,
+        created_at: "2026-11-01T10:00:00.000Z"
+      })),
+      profile_disciplines: SEED_PROFILE_DISCIPLINES.map((pd, i) => ({ id: i + 1, ...pd })),
+      dictionaries: {
+        disciplines: SEED_DICTIONARIES.disciplines.map((x) => ({ ...x })),
+        discipline_roles: SEED_DICTIONARIES.discipline_roles.map((x) => ({ ...x })),
+        ranks: SEED_DICTIONARIES.ranks.map((x) => ({ ...x })),
+        locations: [
+          ...SEED_DICTIONARIES.locations.map((x) => ({ ...x })),
+          { id: 4, city: "Брест", venue_name: "Brest Gaming Lounge", address: "ул. Гоголя 44", lat: 52.0937, lng: 23.6852, is_verified: false }
+        ]
+      },
+      trust_ratings: [
+        { id: 1, from_user_id: 5, to_user_id: 9, score: 5, comment: "Отличный AWP, спокойная инфа и стабильные энтри", created_at: "2026-11-20T18:30:00.000Z" },
+        { id: 2, from_user_id: 9, to_user_id: 5, score: 5, comment: "Хорошо открывает точки, не тильтует", created_at: "2026-11-20T19:10:00.000Z" },
+        { id: 3, from_user_id: 11, to_user_id: 5, score: 5, comment: "Пунктуальный, быстро отвечает в Telegram и чётко кодит", created_at: "2026-11-21T21:00:00.000Z" },
+        { id: 4, from_user_id: 4, to_user_id: 5, score: 4, comment: "Отличный командный игрок, иногда чуть спешит с пушем", created_at: "2026-11-22T20:15:00.000Z" },
+        { id: 5, from_user_id: 7, to_user_id: 10, score: 5, comment: "Варды по кд, комфортно играть", created_at: "2026-11-21T19:40:00.000Z" },
+        { id: 6, from_user_id: 10, to_user_id: 7, score: 5, comment: "Сильный мидер, всегда приходит на ганги", created_at: "2026-11-21T20:05:00.000Z" },
+        { id: 7, from_user_id: 5, to_user_id: 13, score: 1, comment: "Руинил раунды и кричал в войс", created_at: "2026-11-22T23:10:00.000Z" },
+        { id: 8, from_user_id: 9, to_user_id: 13, score: 2, comment: "Вставал AFK после проигранной пистолетки", created_at: "2026-11-23T00:05:00.000Z" }
+      ],
+      reports: [
+        { id: 1, reporter_id: 5, target_user_id: 13, reason: "Оскорбления в голосовом чате во время игры", status: "resolved", moderator_id: 2, action_taken: "mute", created_at: "2026-11-22T23:20:00.000Z" },
+        { id: 2, reporter_id: 9, target_user_id: 13, reason: "Фейковый ранг и токсичное описание профиля", status: "open", moderator_id: null, action_taken: null, created_at: "2026-11-23T14:15:00.000Z" },
+        { id: 3, reporter_id: 11, target_user_id: 13, reason: "Спам ссылками на сторонние рулетки в личные сообщения", status: "open", moderator_id: null, action_taken: null, created_at: "2026-11-24T11:30:00.000Z" },
+        { id: 4, reporter_id: 7, target_user_id: 14, reason: "Подозрение на смурфинг на открытой квалификации", status: "dismissed", moderator_id: 2, action_taken: "none", created_at: "2026-11-23T18:00:00.000Z" },
+        { id: 5, reporter_id: 4, target_user_id: 12, reason: "Не пришёл на запланированный прак без предупреждения (3 раза)", status: "open", moderator_id: null, action_taken: null, created_at: "2026-11-24T19:45:00.000Z" }
+      ],
+      audit_logs: [
+        { id: 1, actor_id: 2, action: "report_resolved", target_type: "report", target_id: 1, details: { target_user_id: 13, action_taken: "mute", duration_hours: 72 }, created_at: "2026-11-22T23:25:00.000Z" },
+        { id: 2, actor_id: 2, action: "report_dismissed", target_type: "report", target_id: 4, details: { target_user_id: 14, action_taken: "none" }, created_at: "2026-11-23T18:30:00.000Z" },
+        { id: 3, actor_id: 1, action: "location_verified", target_type: "location", target_id: 1, details: { venue_name: "CyberArena Grodno", is_verified: true }, created_at: "2026-11-24T09:00:00.000Z" }
+      ]
+    };
+    if (initial.accounts[2]) {
+      initial.accounts[2].external_links.verified_organizer = true;
+    }
+    return initial;
+  }
+
+  function saveExtendedSeed(data) {
+    try {
+      if (global.sessionStorage) {
+        global.sessionStorage.setItem(ADMIN_SEED_KEY, JSON.stringify(data));
+      }
+    } catch (_) {}
+  }
+
+  function buildSeedFullProfile(ext, userId, includePrivate) {
+    const acc = ext.accounts.find((u) => u.id === Number(userId));
+    if (!acc) return null;
+    const disciplines = ext.profile_disciplines
+      .filter((pd) => pd.profile_id === acc.id)
+      .map((pd) => {
+        const d = ext.dictionaries.disciplines.find((x) => x.id === pd.discipline_id) || {};
+        const r = ext.dictionaries.discipline_roles.find((x) => x.id === pd.role_id) || {};
+        const rk = ext.dictionaries.ranks.find((x) => x.id === pd.rank_id) || {};
+        return {
+          id: pd.id,
+          discipline_id: pd.discipline_id,
+          discipline_name: d.name || "",
+          category: d.category || "esports",
+          role_id: pd.role_id,
+          role_name: r.name || "",
+          rank_id: pd.rank_id,
+          rank_name: rk.name || "",
+          rank_order: rk.sort_order || 0
+        };
+      });
+    const ratings_count = ext.trust_ratings.filter((tr) => tr.to_user_id === acc.id).length;
+    const profile = {
+      id: acc.id,
+      role: acc.role,
+      status: acc.status,
+      ban_until: acc.ban_until,
+      created_at: acc.created_at,
+      nickname: acc.nickname,
+      avatar_url: acc.avatar_url,
+      prime_time: acc.prime_time,
+      bio: acc.bio,
+      contacts: { ...(acc.contacts || {}) },
+      external_links: { ...(acc.external_links || {}) },
+      trust_score: Number(acc.trust_score),
+      ratings_count,
+      disciplines
+    };
+    if (includePrivate) profile.email = acc.email;
+    return profile;
+  }
+
+  Object.assign(MPApi, {
+    async getProfileCatalog() {
+      try {
+        return await this.get("/api/profile/catalog");
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const catalog = ext.dictionaries.disciplines.map((d) => ({
+          ...d,
+          roles: ext.dictionaries.discipline_roles.filter((r) => r.discipline_id === d.id),
+          ranks: ext.dictionaries.ranks.filter((r) => r.discipline_id === d.id)
+        }));
+        return { disciplines: catalog, source: "seed" };
+      }
+    },
+
+    async getMyProfile() {
+      try {
+        return await this.get("/api/profile/me");
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        return { profile: buildSeedFullProfile(ext, uid, true), source: "seed" };
+      }
+    },
+
+    async getProfile(userId) {
+      try {
+        return await this.get(`/api/profile/${Number(userId)}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const profile = buildSeedFullProfile(ext, userId, false);
+        if (!profile) throw new Error("Профиль не найден");
+        return { profile, source: "seed" };
+      }
+    },
+
+    async updateMyProfile(payload) {
+      try {
+        return await this.put("/api/profile/me", payload);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        const acc = ext.accounts.find((u) => u.id === uid);
+        if (!acc) throw new Error("Профиль не найден");
+        ["nickname", "avatar_url", "prime_time", "bio", "contacts", "external_links"].forEach((k) => {
+          if (Object.prototype.hasOwnProperty.call(payload, k)) acc[k] = payload[k];
+        });
+        saveExtendedSeed(ext);
+        if (global.MPStorage) {
+          const cur = global.MPStorage.getUser();
+          global.MPStorage.setUser({ ...cur, nickname: acc.nickname, avatar_url: acc.avatar_url });
+        }
+        return { profile: buildSeedFullProfile(ext, uid, true), source: "seed" };
+      }
+    },
+
+    async upsertMyDiscipline({ discipline_id, role_id, rank_id }) {
+      const body = {
+        discipline_id: Number(discipline_id),
+        role_id: role_id ? Number(role_id) : null,
+        rank_id: rank_id ? Number(rank_id) : null
+      };
+      try {
+        return await this.put("/api/profile/me/disciplines", body);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        const idx = ext.profile_disciplines.findIndex(
+          (pd) => pd.profile_id === uid && pd.discipline_id === body.discipline_id
+        );
+        if (idx >= 0) {
+          ext.profile_disciplines[idx].role_id = body.role_id;
+          ext.profile_disciplines[idx].rank_id = body.rank_id;
+        } else {
+          ext.profile_disciplines.push({ id: Date.now(), profile_id: uid, ...body });
+        }
+        saveExtendedSeed(ext);
+        return { disciplines: buildSeedFullProfile(ext, uid, true).disciplines, source: "seed" };
+      }
+    },
+
+    async deleteMyDiscipline(disciplineId) {
+      try {
+        return await this.delete(`/api/profile/me/disciplines/${Number(disciplineId)}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        ext.profile_disciplines = ext.profile_disciplines.filter(
+          (pd) => !(pd.profile_id === uid && pd.discipline_id === Number(disciplineId))
+        );
+        saveExtendedSeed(ext);
+        return { message: "Дисциплина удалена из профиля", source: "seed" };
+      }
+    },
+
+    async getProfileRatings(userId) {
+      try {
+        return await this.get(`/api/profile/${Number(userId)}/ratings`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const ratings = ext.trust_ratings
+          .filter((tr) => tr.to_user_id === Number(userId))
+          .map((tr) => {
+            const from = ext.accounts.find((a) => a.id === tr.from_user_id) || {};
+            return {
+              ...tr,
+              from_nickname: from.nickname || `User #${tr.from_user_id}`,
+              from_avatar_url: from.avatar_url || ""
+            };
+          })
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        ratings.forEach((r) => { distribution[r.score] = (distribution[r.score] || 0) + 1; });
+        return { ratings, total: ratings.length, distribution, source: "seed" };
+      }
+    },
+
+    async getMyTeammates() {
+      try {
+        return await this.get("/api/profile/me/teammates");
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const runtime = loadSeedRuntime();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        const partnerIds = new Set();
+        runtime.matches.forEach((m) => {
+          if (m.user1_id === uid) partnerIds.add(m.user2_id);
+          if (m.user2_id === uid) partnerIds.add(m.user1_id);
+        });
+        const teammates = Array.from(partnerIds).map((pid) => {
+          const acc = ext.accounts.find((a) => a.id === pid);
+          if (!acc) return null;
+          const myRating = ext.trust_ratings.find((tr) => tr.from_user_id === uid && tr.to_user_id === pid);
+          return {
+            id: acc.id,
+            role: acc.role,
+            status: acc.status,
+            nickname: acc.nickname,
+            avatar_url: acc.avatar_url,
+            trust_score: Number(acc.trust_score),
+            relation: "match",
+            my_score: myRating ? myRating.score : null,
+            my_comment: myRating ? myRating.comment : null
+          };
+        }).filter(Boolean);
+        return { teammates, source: "seed" };
+      }
+    },
+
+    async rateUser(userId, { score, comment }) {
+      const body = { score: Number(score), comment: String(comment || "").trim() };
+      try {
+        return await this.post(`/api/profile/${Number(userId)}/rate`, body);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const uid = global.MPStorage?.getUser()?.id || 5;
+        const tid = Number(userId);
+        if (uid === tid) throw new Error("Нельзя оценить самого себя");
+        const existing = ext.trust_ratings.find((tr) => tr.from_user_id === uid && tr.to_user_id === tid);
+        if (existing) {
+          existing.score = body.score;
+          existing.comment = body.comment;
+          existing.created_at = new Date().toISOString();
+        } else {
+          ext.trust_ratings.push({
+            id: Date.now(),
+            from_user_id: uid,
+            to_user_id: tid,
+            score: body.score,
+            comment: body.comment,
+            created_at: new Date().toISOString()
+          });
+        }
+        const received = ext.trust_ratings.filter((tr) => tr.to_user_id === tid);
+        const avg = received.length
+          ? Number((received.reduce((s, r) => s + r.score, 0) / received.length).toFixed(2))
+          : 5.0;
+        const target = ext.accounts.find((a) => a.id === tid);
+        if (target) target.trust_score = avg;
+        saveExtendedSeed(ext);
+        return { message: "Оценка сохранена", trust_score: avg, source: "seed" };
+      }
+    },
+
+    async getReports(status = "all") {
+      const qs = status && status !== "all" ? `?status=${encodeURIComponent(status)}` : "";
+      try {
+        return await this.get(`/api/reports${qs}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const list = ext.reports
+          .filter((r) => status === "all" || r.status === status)
+          .map((r) => {
+            const rep = ext.accounts.find((a) => a.id === r.reporter_id) || {};
+            const tgt = ext.accounts.find((a) => a.id === r.target_user_id) || {};
+            const mod = ext.accounts.find((a) => a.id === r.moderator_id) || {};
+            return {
+              ...r,
+              reporter_nickname: rep.nickname || `User #${r.reporter_id}`,
+              target_nickname: tgt.nickname || `User #${r.target_user_id}`,
+              target_bio: tgt.bio || "",
+              target_trust_score: Number(tgt.trust_score ?? 5),
+              target_role: tgt.role || "player",
+              target_status: tgt.status || "active",
+              target_ban_until: tgt.ban_until || null,
+              moderator_nickname: mod.nickname || null
+            };
+          })
+          .sort((a, b) => (a.status === "open" ? -1 : 1) - (b.status === "open" ? -1 : 1));
+        return { reports: list, source: "seed" };
+      }
+    },
+
+    async resolveReport(reportId, payload) {
+      try {
+        return await this.patch(`/api/reports/${Number(reportId)}`, payload);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const actor = global.MPStorage?.getUser() || { id: 2, role: "moderator" };
+        const rep = ext.reports.find((r) => r.id === Number(reportId));
+        if (!rep) throw new Error("Жалоба не найдена");
+        rep.status = payload.status;
+        rep.action_taken = payload.action_taken || "none";
+        rep.moderator_id = actor.id;
+        if (payload.status === "resolved") {
+          const tgt = ext.accounts.find((a) => a.id === rep.target_user_id);
+          if (tgt) {
+            if (payload.action_taken === "mute") {
+              tgt.status = "muted";
+              tgt.ban_until = new Date(Date.now() + (Number(payload.duration_hours) || 24) * 3600 * 1000).toISOString();
+            } else if (payload.action_taken === "temp_ban") {
+              tgt.status = "temp_banned";
+              tgt.ban_until = new Date(Date.now() + (Number(payload.duration_hours) || 72) * 3600 * 1000).toISOString();
+            } else if (payload.action_taken === "perm_ban") {
+              tgt.status = "perm_banned";
+              tgt.ban_until = null;
+            }
+          }
+        }
+        ext.audit_logs.unshift({
+          id: Date.now(),
+          actor_id: actor.id,
+          action: `report_${payload.status}`,
+          target_type: "report",
+          target_id: rep.id,
+          details: { target_user_id: rep.target_user_id, action_taken: rep.action_taken },
+          created_at: new Date().toISOString()
+        });
+        saveExtendedSeed(ext);
+        return { message: "Жалоба обработана", report: rep, source: "seed" };
+      }
+    },
+
+    async getAdminUsers(filters = {}) {
+      const qs = new URLSearchParams();
+      Object.entries(filters).forEach(([k, v]) => {
+        if (v && v !== "all") qs.set(k, String(v));
+      });
+      const q = qs.toString() ? `?${qs.toString()}` : "";
+      try {
+        return await this.get(`/api/admin/users${q}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const search = String(filters.search || "").trim().toLowerCase();
+        const users = ext.accounts
+          .filter((u) => (!filters.role || filters.role === "all" || u.role === filters.role))
+          .filter((u) => (!filters.status || filters.status === "all" || u.status === filters.status))
+          .filter((u) => (!search || u.nickname.toLowerCase().includes(search) || u.email.toLowerCase().includes(search)))
+          .map((u) => ({
+            ...u,
+            trust_score: Number(u.trust_score),
+            verified_organizer: Boolean(u.external_links?.verified_organizer),
+            reports_count: ext.reports.filter((r) => r.target_user_id === u.id).length,
+            open_reports_count: ext.reports.filter((r) => r.target_user_id === u.id && r.status === "open").length
+          }));
+        return { users, source: "seed" };
+      }
+    },
+
+    async updateAdminUser(userId, payload) {
+      try {
+        return await this.patch(`/api/admin/users/${Number(userId)}`, payload);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const actor = global.MPStorage?.getUser() || { id: 1, role: "admin" };
+        const tgt = ext.accounts.find((u) => u.id === Number(userId));
+        if (!tgt) throw new Error("Пользователь не найден");
+        if (payload.role) tgt.role = payload.role;
+        if (payload.status) {
+          tgt.status = payload.status;
+          tgt.ban_until = (payload.status === "muted" || payload.status === "temp_banned")
+            ? new Date(Date.now() + (Number(payload.duration_hours) || 24) * 3600 * 1000).toISOString()
+            : null;
+        }
+        if (payload.verified_organizer !== undefined) {
+          tgt.external_links = { ...(tgt.external_links || {}) };
+          if (payload.verified_organizer) tgt.external_links.verified_organizer = true;
+          else delete tgt.external_links.verified_organizer;
+        }
+        ext.audit_logs.unshift({
+          id: Date.now(),
+          actor_id: actor.id,
+          action: "user_updated",
+          target_type: "user",
+          target_id: tgt.id,
+          details: payload,
+          created_at: new Date().toISOString()
+        });
+        saveExtendedSeed(ext);
+        return { message: "Пользователь обновлён", user: tgt, source: "seed" };
+      }
+    },
+
+    async addDictionaryItem(payload) {
+      try {
+        return await this.post("/api/admin/dictionaries", payload);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const actor = global.MPStorage?.getUser() || { id: 1 };
+        const id = Date.now();
+        let item;
+        if (payload.type === "discipline") {
+          item = { id, name: payload.name, category: payload.category };
+          ext.dictionaries.disciplines.push(item);
+        } else if (payload.type === "role") {
+          item = { id, discipline_id: Number(payload.discipline_id), name: payload.name };
+          ext.dictionaries.discipline_roles.push(item);
+        } else if (payload.type === "rank") {
+          item = { id, discipline_id: Number(payload.discipline_id), name: payload.name, sort_order: Number(payload.sort_order) || 1 };
+          ext.dictionaries.ranks.push(item);
+        } else if (payload.type === "location") {
+          item = { id, city: payload.city, venue_name: payload.venue_name, address: payload.address, is_verified: Boolean(payload.is_verified) };
+          ext.dictionaries.locations.push(item);
+        }
+        ext.audit_logs.unshift({
+          id: Date.now() + 1,
+          actor_id: actor.id,
+          action: "dictionary_created",
+          target_type: payload.type,
+          target_id: id,
+          details: item || payload,
+          created_at: new Date().toISOString()
+        });
+        saveExtendedSeed(ext);
+        return { item, source: "seed" };
+      }
+    },
+
+    async toggleLocationVerified(id, is_verified) {
+      try {
+        return await this.patch(`/api/admin/dictionaries/location/${Number(id)}`, { is_verified: Boolean(is_verified) });
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const loc = ext.dictionaries.locations.find((l) => l.id === Number(id));
+        if (!loc) throw new Error("Локация не найдена");
+        loc.is_verified = Boolean(is_verified);
+        saveExtendedSeed(ext);
+        return { item: loc, source: "seed" };
+      }
+    },
+
+    async deleteDictionaryItem(type, id) {
+      try {
+        return await this.delete(`/api/admin/dictionaries/${encodeURIComponent(type)}/${Number(id)}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const map = { discipline: "disciplines", role: "discipline_roles", rank: "ranks", location: "locations" };
+        const key = map[type];
+        if (key) {
+          ext.dictionaries[key] = ext.dictionaries[key].filter((x) => x.id !== Number(id));
+        }
+        saveExtendedSeed(ext);
+        return { message: "Запись удалена", source: "seed" };
+      }
+    },
+
+    async getAdminStats() {
+      try {
+        return await this.get("/api/admin/stats");
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const runtime = loadSeedRuntime();
+        const users_by_role = {};
+        const users_by_status = {};
+        ext.accounts.forEach((u) => {
+          users_by_role[u.role] = (users_by_role[u.role] || 0) + 1;
+          users_by_status[u.status] = (users_by_status[u.status] || 0) + 1;
+        });
+        const reports = { open: 0, resolved: 0, dismissed: 0 };
+        ext.reports.forEach((r) => { reports[r.status] = (reports[r.status] || 0) + 1; });
+        const avg = Number(
+          (ext.accounts.reduce((s, u) => s + Number(u.trust_score || 5), 0) / ext.accounts.length).toFixed(2)
+        );
+        return {
+          users_total: ext.accounts.length,
+          users_by_role,
+          users_by_status,
+          reports,
+          matches_count: runtime.matches.length,
+          teams_count: runtime.teams.length,
+          events_count: 3,
+          ratings_count: ext.trust_ratings.length,
+          avg_trust_score: avg,
+          low_trust_count: ext.accounts.filter((u) => Number(u.trust_score) < 3.5).length,
+          source: "seed"
+        };
+      }
+    },
+
+    async getAdminLogs() {
+      try {
+        return await this.get("/api/admin/logs");
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        const ext = loadExtendedSeed();
+        const logs = ext.audit_logs.map((l) => {
+          const actor = ext.accounts.find((a) => a.id === l.actor_id) || {};
+          return { ...l, actor_nickname: actor.nickname || `User #${l.actor_id}` };
+        });
+        return { logs, source: "seed" };
+      }
+    }
+  });
   global.MPApi = MPApi;
 })(typeof window !== "undefined" ? window : globalThis);

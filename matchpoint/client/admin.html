@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MatchPoint — Панель Модератора и Администратора</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/media.css">
+  <style>
+    .kpi-card {
+      padding: 18px;
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+    }
+    .kpi-card__label {
+      font-size: var(--fs-xs);
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .kpi-card__value {
+      font-size: 1.85rem;
+      font-weight: 800;
+      margin-top: 6px;
+      line-height: 1.1;
+    }
+    .admin-panel-section { display: none; }
+    .admin-panel-section.is-active { display: block; }
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filter-bar .form-control {
+      width: auto;
+      min-width: 170px;
+    }
+    .report-card {
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 12px;
+    }
+    .report-card__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .report-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-subtle);
+    }
+    .dict-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .dict-grid { grid-template-columns: 1fr; }
+    }
+    .dict-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: var(--radius-xs);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 6px;
+      font-size: var(--fs-sm);
+    }
+    .access-denied {
+      max-width: 560px;
+      margin: 48px auto;
+      text-align: center;
+      padding: 32px 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ================= ШАПКА САЙТА ================= -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand__mark">◈</span>
+        <span>Match<span class="brand__accent">Point</span></span>
+      </a>
+
+      <nav class="main-nav" aria-label="Основная навигация">
+        <a href="index.html" class="nav-link">🔥 Свайпы</a>
+        <a href="events.html" class="nav-link">🏆 Ивенты</a>
+        <a href="teams.html" class="nav-link">👥 Команды</a>
+        <a href="profile.html" class="nav-link">👤 Профиль</a>
+        <a href="admin.html" class="nav-link is-active">🛡 Админ</a>
+      </nav>
+
+      <div class="header-actions">
+        <select class="role-switcher-select hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта">
+          <option value="5">ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
+        </select>
+
+        <button class="btn btn--ghost btn--sm hide-on-mobile" id="openAuthModalBtn" type="button">
+          👤 Аккаунт
+        </button>
+
+        <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="Сменить тему оформления">
+          ☀️
+        </button>
+
+        <button class="burger-btn" id="burgerBtn" type="button" aria-label="Открыть меню" aria-controls="mobileDrawer" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mobile-drawer-backdrop" id="mobileBackdrop"></div>
+  <nav class="mobile-drawer" id="mobileDrawer" aria-label="Мобильная навигация">
+    <a href="index.html" class="nav-link">🔥 Поиск свайпами</a>
+    <a href="events.html" class="nav-link">🏆 Ивенты и Турниры</a>
+    <a href="teams.html" class="nav-link">👥 Команды</a>
+    <a href="profile.html" class="nav-link">👤 Профиль и Trust Factor</a>
+    <a href="admin.html" class="nav-link is-active">🛡 Модерация и Админ</a>
+
+    <div class="mobile-drawer__footer">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label" for="mobileRoleSwitcher">Аккаунт сессии</label>
+        <select class="form-control" id="mobileRoleSwitcher">
+          <option value="5">ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
+        </select>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ================= ОСНОВНОЙ КОНТЕНТ ================= -->
+  <main class="page-shell">
+    <div class="container">
+
+      <!-- Экран ограничения прав для обычных пользователей -->
+      <section class="mp-card access-denied" id="accessDeniedBox" style="display:none;">
+        <div style="font-size:2.4rem;margin-bottom:10px;">🔒</div>
+        <h1 class="page-title" style="font-size:var(--fs-xl);">Доступ только для Модераторов и Администраторов</h1>
+        <p class="text-secondary text-sm" id="accessDeniedText" style="margin:10px 0 20px;">
+          Текущая роль не имеет прав для просмотра очереди жалоб и управления платформой.
+        </p>
+        <div class="btn-group" style="justify-content:center;">
+          <button type="button" class="btn btn--secondary" data-quick-switch="2">🛡 Войти как ModWatch (Модератор)</button>
+          <button type="button" class="btn btn--primary" data-quick-switch="1">👑 Войти как AdminRoot (Админ)</button>
+        </div>
+      </section>
+
+      <!-- Рабочая область Модератора / Админа -->
+      <div id="adminWorkspace" style="display:none;">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap;">
+          <div>
+            <h1 class="page-title" id="adminPageTitle">🛡 Панель Модератора и Администратора</h1>
+            <p class="page-subtitle" id="adminRoleSubtitle">
+              Очередь жалоб, управление пользователями, справочники и системная аналитика.
+            </p>
+          </div>
+          <button type="button" class="btn btn--ghost btn--sm" id="refreshAdminBtn">🔄 Обновить данные</button>
+        </div>
+
+        <!-- KPI-карточки -->
+        <section class="grid-4" style="margin-bottom:20px;" id="kpiGrid">
+          <div class="kpi-card">
+            <div class="kpi-card__label">Пользователи</div>
+            <div class="kpi-card__value" id="kpiUsers">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Открытые жалобы</div>
+            <div class="kpi-card__value text-danger" id="kpiOpenReports">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Средний Trust Factor</div>
+            <div class="kpi-card__value text-success" id="kpiAvgTrust">—</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-card__label">Мэтчи / Команды / Ивенты</div>
+            <div class="kpi-card__value" id="kpiActivity" style="font-size:1.35rem;">—</div>
+          </div>
+        </section>
+
+        <!-- Вкладки -->
+        <div class="tabs" id="adminTabs" style="margin-bottom:20px;">
+          <button type="button" class="tab-btn is-active" data-tab="moderation">
+            🛡 Очередь жалоб (<span id="tabOpenCount">0</span>)
+          </button>
+          <button type="button" class="tab-btn" data-tab="users">
+            👥 Пользователи и роли
+          </button>
+          <button type="button" class="tab-btn" data-tab="dictionaries" data-admin-only="true">
+            📚 Справочники
+          </button>
+          <button type="button" class="tab-btn" data-tab="analytics" data-admin-only="true">
+            📈 Аналитика и аудит
+          </button>
+        </div>
+
+        <!-- ВКЛАДКА 1: МОДЕРАЦИЯ (REPORTS QUEUE) -->
+        <section class="admin-panel-section is-active" id="tab-moderation">
+          <div class="mp-card">
+            <div class="mp-card__header">
+              <h2 class="section-title" style="margin:0;">Очередь жалоб (Reports Queue)</h2>
+              <div class="filter-bar" style="margin:0;">
+                <select class="form-control" id="reportStatusFilter" aria-label="Фильтр статуса жалоб">
+                  <option value="all">Все статусы</option>
+                  <option value="open" selected>Открытые (open)</option>
+                  <option value="resolved">Решённые (resolved)</option>
+                  <option value="dismissed">Отклонённые (dismissed)</option>
+                </select>
+              </div>
+            </div>
+            <div id="reportsList"></div>
+          </div>
+        </section>
+
+        <!-- ВКЛАДКА 2: ПОЛЬЗОВАТЕЛИ И РОЛИ -->
+        <section class="admin-panel-section" id="tab-users">
+          <div class="mp-card">
+            <div class="filter-bar">
+              <input class="form-control" id="userSearchInput" placeholder="Поиск по нику или email..." style="flex:1;min-width:220px;">
+              <select class="form-control" id="userRoleFilter">
+                <option value="all">Все роли</option>
+                <option value="guest">guest</option>
+                <option value="player">player</option>
+                <option value="captain">captain</option>
+                <option value="organizer">organizer</option>
+                <option value="moderator">moderator</option>
+                <option value="admin">admin</option>
+              </select>
+              <select class="form-control" id="userStatusFilter">
+                <option value="all">Все статусы</option>
+                <option value="active">active</option>
+                <option value="muted">muted</option>
+                <option value="temp_banned">temp_banned</option>
+                <option value="perm_banned">perm_banned</option>
+              </select>
+            </div>
+
+            <div class="table-wrap">
+              <table class="mp-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Пользователь</th>
+                    <th>Роль</th>
+                    <th>Статус</th>
+                    <th>Trust</th>
+                    <th>Жалобы</th>
+                    <th>Действия</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ВКЛАДКА 3: СПРАВОЧНИКИ (ТОЛЬКО АДМИН) -->
+        <section class="admin-panel-section" id="tab-dictionaries">
+          <div class="dict-grid">
+
+            <!-- Дисциплины -->
+            <div class="mp-card">
+              <h3 class="section-title">🎮 Дисциплины</h3>
+              <div id="dictDisciplinesList" style="margin-bottom:12px;"></div>
+              <form id="addDisciplineDictForm" class="form-row" style="align-items:flex-end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newDiscName">Название</label>
+                  <input class="form-control" id="newDiscName" placeholder="Valorant / AI Track" required>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newDiscCategory">Категория</label>
+                  <select class="form-control" id="newDiscCategory">
+                    <option value="esports">esports</option>
+                    <option value="it">it</option>
+                  </select>
+                </div>
+                <button type="submit" class="btn btn--primary btn--sm" style="height:40px;">+ Добавить</button>
+              </form>
+            </div>
+
+            <!-- Роли -->
+            <div class="mp-card">
+              <h3 class="section-title">🧩 Роли в дисциплинах</h3>
+              <div id="dictRolesList" style="max-height:220px;overflow-y:auto;margin-bottom:12px;"></div>
+              <form id="addRoleDictForm" class="form-row" style="align-items:flex-end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newRoleDisc">Дисциплина</label>
+                  <select class="form-control" id="newRoleDisc"></select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newRoleName">Роль</label>
+                  <input class="form-control" id="newRoleName" placeholder="Duelist / DevOps" required>
+                </div>
+                <button type="submit" class="btn btn--primary btn--sm" style="height:40px;">+ Добавить</button>
+              </form>
+            </div>
+
+            <!-- Ранги -->
+            <div class="mp-card">
+              <h3 class="section-title">🏆 Ранги и грейды</h3>
+              <div id="dictRanksList" style="max-height:220px;overflow-y:auto;margin-bottom:12px;"></div>
+              <form id="addRankDictForm" class="form-row" style="align-items:flex-end;">
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newRankDisc">Дисциплина</label>
+                  <select class="form-control" id="newRankDisc"></select>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                  <label class="form-label" for="newRankName">Ранг</label>
+                  <input class="form-control" id="newRankName" placeholder="Radiant / Tech Lead" required>
+                </div>
+                <button type="submit" class="btn btn--primary btn--sm" style="height:40px;">+ Добавить</button>
+              </form>
+            </div>
+
+            <!-- Локации -->
+            <div class="mp-card">
+              <h3 class="section-title">📍 Локации и площадки (верификация)</h3>
+              <div id="dictLocationsList" style="margin-bottom:12px;"></div>
+              <form id="addLocationDictForm">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label" for="newLocCity">Город</label>
+                    <input class="form-control" id="newLocCity" placeholder="Минск" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="newLocVenue">Площадка</label>
+                    <input class="form-control" id="newLocVenue" placeholder="CyberSpace Club" required>
+                  </div>
+                </div>
+                <div class="form-row" style="align-items:flex-end;">
+                  <div class="form-group" style="margin-bottom:0;">
+                    <label class="form-label" for="newLocAddress">Адрес</label>
+                    <input class="form-control" id="newLocAddress" placeholder="ул. Немига 12" required>
+                  </div>
+                  <button type="submit" class="btn btn--primary btn--sm" style="height:40px;">+ Добавить площадку</button>
+                </div>
+              </form>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ВКЛАДКА 4: АНАЛИТИКА И АУДИТ (ТОЛЬКО АДМИН) -->
+        <section class="admin-panel-section" id="tab-analytics">
+          <div class="grid-2" style="margin-bottom:20px;">
+            <div class="mp-card">
+              <h3 class="section-title">Распределение по ролям</h3>
+              <div id="rolesBreakdown"></div>
+            </div>
+            <div class="mp-card">
+              <h3 class="section-title">Статусы аккаунтов и риски</h3>
+              <div id="statusBreakdown"></div>
+            </div>
+          </div>
+
+          <div class="mp-card">
+            <h3 class="section-title">🧾 Журнал аудита (audit_logs)</h3>
+            <div class="table-wrap">
+              <table class="mp-table">
+                <thead>
+                  <tr>
+                    <th>Время</th>
+                    <th>Актор</th>
+                    <th>Действие</th>
+                    <th>Объект</th>
+                    <th>Детали</th>
+                  </tr>
+                </thead>
+                <tbody id="auditLogsBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
