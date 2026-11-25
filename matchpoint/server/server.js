@@ -7,6 +7,7 @@ const db = require('./db/database');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const swipesRoutes = require('./routes/swipes');
+const teamsRoutes = require('./routes/teams');
 
 
 const app = express();
@@ -28,6 +29,7 @@ app.get('/api/health', async (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/swipes', swipesRoutes);
+app.use('/api/teams', teamsRoutes);
 
 app.use('/api', (req, res) => {
   res.status(404).json({ error: 'API endpoint не найден' });
