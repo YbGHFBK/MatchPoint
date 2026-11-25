@@ -1,10 +1,11 @@
 /* ==========================================================================
-   MatchPoint — Движок карточек, свайпов, фильтров и мэтчей (client/js/swipe.js)
-   Модуль: Фронтенд-ядро (Карулис Иван)
-   Синхронизировано со схемой БД:
-   - disciplines / discipline_roles / ranks / profile_disciplines
-   - profiles (trust_score NUMERIC(3,2), contacts JSONB, external_links JSONB)
-   - swipes (to_user_id, is_like BOOLEAN) и matches (user1_id < user2_id)
+   MatchPoint — Механика свайпов, фильтров, мэтчей и авторизации (client/js/swipe.js)
+   Зона ответственности: Фронтенд-ядро (Карулис Иван)
+   Синхронизировано с 01_schema.sql, 02_seed.sql и server/routes/auth.js:
+   - Перетаскивание карточек (Pointer Events: мышь и сенсорные экраны) + кнопки
+   - Каскадные фильтры БД: disciplines -> discipline_roles, ranks + prime_time + trust_score
+   - Модалка «It’s a Match!», раскрытие JSONB contacts и лобби-чат (с проверкой status='muted')
+   - Работа с реальным /api/auth/login, /api/auth/register, /api/auth/me + 14 сид-аккаунтов
    ========================================================================== */
 
 (function () {
@@ -19,7 +20,8 @@
     activePartnerForChat: null,
     reportTargetCard: null,
     chatMessagesByUser: {},
-    isAnimating: false
+    isAnimating: false,
+    authMode: "login" // 'login' | 'register'
   };
 
   function esc(value) {
@@ -39,6 +41,12 @@
     return clean.slice(0, 2).toUpperCase();
   }
 
+  function avatarInnerHTML(avatarUrl, nickname) {
+    const initials = esc(initialsFromName(nickname));
+    if (!avatarUrl) return `<span>${initials}</span>`;
+    return `<img src="${esc(avatarUrl)}" alt="${esc(nickname || "avatar")}" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'${initials}'}))">`;
+  }
+
   function showToast(message) {
     const container = document.getElementById("toastContainer");
     if (!container) return;
@@ -51,7 +59,7 @@
       el.style.transform = "translateX(20px)";
       el.style.transition = "0.22s ease";
       setTimeout(() => el.remove(), 240);
-    }, 2600);
+    }, 2800);
   }
 
   function syncModalBodyLock() {
@@ -82,8 +90,33 @@
     document.body.classList.toggle("menu-open", open);
   }
 
-  // ================= ШАПКА, БУРГЕР-МЕНЮ, ТЕМА И СЕССИЯ =================
-  function initHeaderAndTheme() {
+  function trustBadgeClass(score) {
+    const n = Number(score ?? 5);
+    if (n >= 4.8) return "trust-badge--high";
+    if (n >= 3.5) return "trust-badge--mid";
+    return "trust-badge--low";
+  }
+
+  // ================= ШАПКА, ТЕМА, БУРГЕР-МЕНЮ И СЕССИЯ =================
+  function updateHeaderAuthUI() {
+    const user = window.MPStorage.getUser();
+    const roleSelect = document.getElementById("roleSwitcher");
+    const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
+    const authBtn = document.getElementById("openAuthModalBtn");
+
+    if (roleSelect && Array.from(roleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
+      roleSelect.value = String(user.id);
+    }
+    if (mobileRoleSelect && Array.from(mobileRoleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
+      mobileRoleSelect.value = String(user.id);
+    }
+    if (authBtn) {
+      authBtn.textContent = user.role === "guest" ? "🔐 Войти" : `👤 ${user.nickname}`;
+      authBtn.title = `${user.email || "Гость"} • роль: ${user.role} • статус: ${user.status}`;
+    }
+  }
+
+  async function initHeaderAndSession() {
     const theme = window.MPStorage.initTheme();
     updateThemeBtn(theme);
 
@@ -97,44 +130,52 @@
       );
     });
 
-    if (!window.MPStorage.getToken()) {
-      window.MPStorage.setToken("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.mp_user_2");
+    // Если токен ещё не задан — инициализируем демо-аккаунт ShadowStep (id: 5 из 02_seed.sql)
+    if (!window.MPStorage.getToken() && window.MPStorage.getUser().role !== "guest") {
+      try {
+        await window.MPApi.switchSeedAccount(window.MPStorage.getUser().id || 5);
+      } catch (_) {}
+    } else if (window.MPStorage.getToken()) {
+      // Если запущен реальный backend (/api/auth/me), синхронизируем актуальный профиль из БД
+      try {
+        const me = await window.MPApi.getMe();
+        if (me && me.user) window.MPStorage.setUser(me.user);
+      } catch (_) {}
     }
+
+    updateHeaderAuthUI();
 
     const roleSelect = document.getElementById("roleSwitcher");
     const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-    const currentUser = window.MPStorage.getUser();
 
-    function applySelectedRole(selectedRole) {
-      const isGuest = selectedRole === "guest";
-      const updated = window.MPStorage.setUser({
-        id: isGuest ? 0 : 2,
-        nickname: isGuest ? "Гость" : "Karulis1",
-        role: selectedRole,
-        status: "active"
-      });
-      if (roleSelect) roleSelect.value = selectedRole;
-      if (mobileRoleSelect) mobileRoleSelect.value = selectedRole;
-      showToast(`👤 Текущая роль (${updated.role}) обновлена в localStorage`);
+    async function handleAccountSwitch(userIdValue) {
+      try {
+        const res = await window.MPApi.switchSeedAccount(Number(userIdValue));
+        window.MPStorage.clearViewedCards();
+        updateHeaderAuthUI();
+        renderSessionHistory();
+        await Promise.all([loadCards(), loadMatches()]);
+        const u = res.user;
+        const modeTag = res.source === "server" ? "JWT от PostgreSQL" : "02_seed.sql";
+        showToast(`👤 Аккаунт: @${u.nickname} (${u.role}${u.status === "muted" ? ", muted" : ""}) • ${modeTag}`);
+      } catch (err) {
+        showToast(`⚠️ ${err.message}`);
+      }
     }
 
-    if (currentUser) {
-      const initialRole = currentUser.role || "player";
-      if (roleSelect) roleSelect.value = initialRole;
-      if (mobileRoleSelect) mobileRoleSelect.value = initialRole;
-    }
+    roleSelect?.addEventListener("change", () => handleAccountSwitch(roleSelect.value));
+    mobileRoleSelect?.addEventListener("change", () => {
+      setBurgerOpen(false);
+      handleAccountSwitch(mobileRoleSelect.value);
+    });
 
-    roleSelect?.addEventListener("change", () => applySelectedRole(roleSelect.value));
-    mobileRoleSelect?.addEventListener("change", () => applySelectedRole(mobileRoleSelect.value));
-
-    // Адаптивное бургер-меню + подложка + автозакрытие при ресайзе на десктоп
+    // Адаптивное бургер-меню
     const burgerBtn = document.getElementById("burgerBtn");
     const mobileDrawer = document.getElementById("mobileDrawer");
     const mobileBackdrop = document.getElementById("mobileBackdrop");
     if (burgerBtn && mobileDrawer) {
       burgerBtn.addEventListener("click", () => {
-        const nextOpen = !mobileDrawer.classList.contains("is-open");
-        setBurgerOpen(nextOpen);
+        setBurgerOpen(!mobileDrawer.classList.contains("is-open"));
       });
       mobileBackdrop?.addEventListener("click", () => setBurgerOpen(false));
       window.addEventListener("resize", () => {
@@ -143,14 +184,6 @@
         }
       });
     }
-
-    document.querySelectorAll("[data-team-page]").forEach((link) => {
-      link.addEventListener("click", (e) => {
-        e.preventDefault();
-        setBurgerOpen(false);
-        showToast(`📌 Страница ${link.getAttribute("href")} (${link.getAttribute("data-team-page")})`);
-      });
-    });
 
     // Мобильные вкладки (360px–767px)
     document.querySelectorAll("[data-mobile-tab]").forEach((btn) => {
@@ -181,7 +214,7 @@
       <optgroup label="Киберспорт (esports)">
         ${esports.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}
       </optgroup>
-      <optgroup label="IT-направления (it)">
+      <optgroup label="IT и Хакатоны (it)">
         ${itList.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}
       </optgroup>
     `;
@@ -212,24 +245,24 @@
 
     const roleSelect = document.getElementById("fRoleId");
     if (roleSelect) {
-      roleSelect.innerHTML = `<option value="">Любая роль</option>` +
+      roleSelect.innerHTML =
+        `<option value="">Любая роль</option>` +
         filteredRoles.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join("");
-      if (selectedRoleId && filteredRoles.some((r) => String(r.id) === String(selectedRoleId))) {
-        roleSelect.value = String(selectedRoleId);
-      } else {
-        roleSelect.value = "";
-      }
+      roleSelect.value =
+        selectedRoleId && filteredRoles.some((r) => String(r.id) === String(selectedRoleId))
+          ? String(selectedRoleId)
+          : "";
     }
 
     const rankSelect = document.getElementById("fRankId");
     if (rankSelect) {
-      rankSelect.innerHTML = `<option value="">Любой ранг / грейд</option>` +
+      rankSelect.innerHTML =
+        `<option value="">Любой ранг / грейд</option>` +
         filteredRanks.map((rk) => `<option value="${rk.id}">${esc(rk.name)}</option>`).join("");
-      if (selectedRankId && filteredRanks.some((rk) => String(rk.id) === String(selectedRankId))) {
-        rankSelect.value = String(selectedRankId);
-      } else {
-        rankSelect.value = "";
-      }
+      rankSelect.value =
+        selectedRankId && filteredRanks.some((rk) => String(rk.id) === String(selectedRankId))
+          ? String(selectedRankId)
+          : "";
     }
   }
 
@@ -269,7 +302,7 @@
       populateDependentRolesAndRanks(discipline_id, "", "");
       window.MPStorage.setFilters({ discipline_id, role_id: "", rank_id: "" });
       loadCards();
-      showToast("🎛 Дисциплина обновлена (роли и ранги подгружены)");
+      showToast("🎛 Дисциплина обновлена (роли и ранги синхронизированы)");
     });
 
     const form = document.getElementById("filtersForm");
@@ -294,19 +327,36 @@
     });
   }
 
-  // ================= ЗАГРУЗКА И ОТРИСОВКА КАРТОЧЕК =================
+  // ================= ЗАГРУЗКА И ОТРИСОВКА КОЛОДЫ КАРТОЧЕК =================
+  function pickPrimaryDiscipline(card, activeFilters) {
+    const pds = Array.isArray(card.profile_disciplines) ? card.profile_disciplines : [];
+    if (!pds.length) return {};
+    if (activeFilters.discipline_id) {
+      const match = pds.find((pd) => Number(pd.discipline_id) === Number(activeFilters.discipline_id));
+      if (match) return match;
+    }
+    return pds[0];
+  }
+
   async function loadCards(ignoreSessionHistory = false) {
     const filters = window.MPStorage.getFilters();
-    const res = await window.MPApi.getCards(filters);
-    const viewedKeys = ignoreSessionHistory
-      ? new Set()
-      : new Set(window.MPStorage.getViewedCards().map((v) => v.card_key));
+    try {
+      const res = await window.MPApi.getCards(filters);
+      const viewedKeys = ignoreSessionHistory
+        ? new Set()
+        : new Set(window.MPStorage.getViewedCards().map((v) => v.card_key));
 
-    const currentUserId = window.MPStorage.getUser()?.id || 0;
-    state.cards = (res.cards || []).filter(
-      (c) => c.user_id !== currentUserId && !viewedKeys.has(c.card_key)
-    );
-    renderDeck();
+      const currentUserId = window.MPStorage.getUser()?.id || 0;
+      state.cards = (res.cards || [])
+        .filter((c) => c.user_id !== currentUserId && !viewedKeys.has(c.card_key))
+        .map((c) => ({
+          ...c,
+          primary_discipline: pickPrimaryDiscipline(c, filters)
+        }));
+      renderDeck();
+    } catch (err) {
+      showToast(`⚠️ ${err.message}`);
+    }
   }
 
   function renderDeck() {
@@ -322,13 +372,13 @@
       stack.innerHTML = `
         <div class="deck-empty">
           <div class="deck-empty__icon">🎯</div>
-          <h3>Все подходящие анкеты просмотрены</h3>
-          <p style="color:var(--text-secondary);font-size:0.88rem;max-width:330px">
-            Измените параметры фильтрации по дисциплинам и рангам или обновите историю текущей сессии.
+          <h3>Анкеты по выбранным фильтрам закончились</h3>
+          <p class="text-sm text-secondary">
+            Сбросьте параметры поиска в <code>localStorage</code> или очистите историю просмотров текущей сессии в <code>sessionStorage</code>.
           </p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:6px">
-            <button type="button" class="btn btn--primary" id="reloadDeckBtn">🔄 Смотреть заново</button>
-            <button type="button" class="btn btn--ghost" id="emptyResetBtn">Сбросить фильтры</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px">
+            <button type="button" class="btn btn--primary btn--sm" id="reloadDeckBtn">🔄 Показать просмотренные снова</button>
+            <button type="button" class="btn btn--ghost btn--sm" id="emptyResetBtn">Сбросить фильтры</button>
           </div>
         </div>
       `;
@@ -345,68 +395,55 @@
       return;
     }
 
-    const topThree = state.cards.slice(0, 3);
-    stack.innerHTML = topThree
-      .map((card, idx) => buildCardHTML(card, idx))
-      .reverse()
-      .join("");
+    const visible = state.cards.slice(0, 3);
+    stack.innerHTML = visible.map((card, idx) => buildCardHTML(card, idx)).join("");
 
-    const topEl = stack.querySelector(".swipe-card.is-top");
-    if (topEl) attachDragHandlers(topEl, state.cards[0]);
+    const topCardEl = stack.querySelector(".swipe-card.is-top");
+    if (topCardEl) attachPointerSwipe(topCardEl);
   }
 
   function buildCardHTML(card, index) {
     const posClass = index === 0 ? "is-top" : index === 1 ? "is-next" : "is-third";
-    const pd = (card.profile_disciplines && card.profile_disciplines[0]) || {
-      discipline_name: "Дисциплина",
-      category: "esports",
-      role_name: "Игрок",
-      rank_name: "—"
-    };
-
+    const pd = card.primary_discipline || (card.profile_disciplines && card.profile_disciplines[0]) || {};
     const isTeam = card.card_type === "team" && card.team;
-    const title = isTeam ? `Команда «${card.team.name}»` : `@${card.nickname}`;
+    const trustNum = Number(card.trust_score ?? 5).toFixed(2);
+    const trustCls = trustBadgeClass(card.trust_score);
+
+    const typeBadge = isTeam
+      ? `<span class="badge badge--team">👥 Команда (${esc(card.team.members_count || 3)}/5)</span>`
+      : pd.category === "it"
+        ? `<span class="badge badge--it">💻 Разработчик</span>`
+        : `<span class="badge badge--esports">🎮 Игрок</span>`;
+
+    const title = isTeam ? card.team.name : `@${card.nickname}`;
     const subtitle = isTeam
-      ? `Капитан @${card.nickname} • Состав ${card.team.members_count || 3}/5`
-      : `${pd.discipline_name} • ${pd.role_name}`;
+      ? `Капитан @${card.nickname} • Ищем: ${card.team.looking_for_role_name || pd.role_name}`
+      : `${pd.discipline_name || "MatchPoint"} • ${pd.role_name || "Универсал"}`;
 
-    const badgeHTML = isTeam
-      ? `<span class="badge badge--team">📢 Вакансия команды</span>`
-      : `<span class="badge ${pd.category === "it" ? "badge--it" : "badge--esports"}">${pd.category === "it" ? "💻 IT-профиль" : "🎮 Игрок"}</span>`;
+    const extLinks = card.external_links || {};
+    const extHTML = Object.entries(extLinks)
+      .map(([platform, url]) => `<a class="ext-pill" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(platform.toUpperCase())} ↗</a>`)
+      .join("");
 
-    const trustNum = Number(card.trust_score ?? 5.0).toFixed(2);
-    const trustClass = Number(trustNum) >= 4.7 ? "trust-badge--high" : "trust-badge--mid";
-
-    const linksObj = card.external_links || {};
-    const extKeys = Object.keys(linksObj);
-
-    const avatarContent = card.avatar_url
-      ? `<img src="${esc(card.avatar_url)}" alt="${esc(title)}" style="width:100%;height:100%;object-fit:cover;border-radius:16px">`
-      : initialsFromName(isTeam ? card.team.name : card.nickname);
-
-    const extraChips = [];
-    if (isTeam && card.team.looking_for_role_name) {
-      extraChips.push(`Ищем: ${card.team.looking_for_role_name}`);
-    }
-    (card.profile_disciplines || []).forEach((d) => {
-      extraChips.push(`${d.discipline_name}: ${d.role_name}`);
-      if (d.rank_name) extraChips.push(d.rank_name);
-    });
+    const discChips = (card.profile_disciplines || [])
+      .map((d) => `<span class="skill-chip">${esc(d.discipline_name)}: ${esc(d.role_name)} (${esc(d.rank_name || "—")})</span>`)
+      .join("");
 
     return `
-      <article class="swipe-card ${posClass}" data-user-id="${card.user_id}">
+      <article class="swipe-card ${posClass}" data-card-key="${esc(card.card_key)}" data-user-id="${esc(card.user_id)}">
         <div class="swipe-stamp swipe-stamp--like">ЛАЙК 💚</div>
         <div class="swipe-stamp swipe-stamp--skip">ПРОПУСК ✕</div>
 
-        <div class="card-hero" style="background: ${card.gradient || "linear-gradient(135deg, #1f2937, #4f46e5)"}">
+        <div class="card-hero" style="background: ${card.gradient || "linear-gradient(135deg, #2b1d52, #5e35b1)"};">
           <div class="card-hero__top">
-            ${badgeHTML}
-            <span class="trust-badge ${trustClass}" title="Trust Factor (profiles.trust_score 1.00–5.00)">
+            ${typeBadge}
+            <span class="trust-badge ${trustCls}" title="Репутация profiles.trust_score">
               ★ ${trustNum} / 5.00
             </span>
           </div>
+
           <div class="card-hero__profile">
-            <div class="card-avatar">${avatarContent}</div>
+            <div class="card-avatar">${avatarInnerHTML(card.avatar_url, isTeam ? card.team.name : card.nickname)}</div>
             <div class="card-identity">
               <h2>${esc(title)}</h2>
               <p>${esc(subtitle)}</p>
@@ -418,11 +455,11 @@
           <div class="card-metrics">
             <div class="metric-box">
               <span>Ранг / Грейд</span>
-              <b>${esc(pd.rank_name || "Не указан")}</b>
+              <b title="${esc(pd.rank_name || "Любой")}">${esc(pd.rank_name || "Любой")}</b>
             </div>
             <div class="metric-box">
-              <span>${isTeam ? "Нужна роль" : "Роль"}</span>
-              <b>${esc(isTeam ? card.team.looking_for_role_name : pd.role_name)}</b>
+              <span>${isTeam ? "Вакансия" : "Роль"}</span>
+              <b title="${esc(isTeam ? card.team.looking_for_role_name : pd.role_name)}">${esc((isTeam ? card.team.looking_for_role_name : pd.role_name) || "—")}</b>
             </div>
             <div class="metric-box">
               <span>Прайм-тайм</span>
@@ -430,18 +467,16 @@
             </div>
           </div>
 
-          <p class="card-bio">${esc(isTeam && card.team.description ? card.team.description : card.bio)}</p>
+          <p class="card-bio">${esc(card.bio || "Готов к совместным играм и турнирам!")}</p>
 
           <div class="card-tags">
-            ${extraChips.slice(0, 4).map((chip) => `<span class="skill-chip">${esc(chip)}</span>`).join("")}
+            ${discChips}
           </div>
 
           <div class="card-links">
             <span>Внешние профили:</span>
             <div class="ext-profiles">
-              ${extKeys.length
-                ? extKeys.map((k) => `<a class="ext-pill" href="${esc(linksObj[k])}" target="_blank" rel="noopener noreferrer">🔗 ${esc(k.toUpperCase())}</a>`).join("")
-                : `<span style="font-size:0.74rem">Контакты после мэтча</span>`}
+              ${extHTML || '<span class="ext-pill">Не указаны</span>'}
             </div>
           </div>
         </div>
@@ -449,32 +484,31 @@
     `;
   }
 
-  // ================= МЕХАНИКА ПЕРЕТАСКИВАНИЯ (Pointer Events) =================
-  function attachDragHandlers(cardEl, cardData) {
+  // ================= ПЕРЕТАСКИВАНИЕ МЫШЬЮ И ТАЧЕМ (POINTER EVENTS) =================
+  function attachPointerSwipe(cardEl) {
     let dragging = false;
     let startX = 0;
     let startY = 0;
     let dx = 0;
     let dy = 0;
 
-    const likeStamp = cardEl.querySelector(".swipe-stamp--like");
-    const skipStamp = cardEl.querySelector(".swipe-stamp--skip");
+    const stampLike = cardEl.querySelector(".swipe-stamp--like");
+    const stampSkip = cardEl.querySelector(".swipe-stamp--skip");
 
-    const onPointerDown = (e) => {
-      if (state.isAnimating) return;
-      if (e.target.closest("a")) return;
-      if (e.pointerType === "mouse" && e.button !== 0) return;
-
+    cardEl.addEventListener("pointerdown", (e) => {
+      if (state.isAnimating || e.target.closest("a, button")) return;
       dragging = true;
       startX = e.clientX;
       startY = e.clientY;
       dx = 0;
       dy = 0;
       cardEl.classList.remove("is-animating");
-      try { cardEl.setPointerCapture(e.pointerId); } catch (_) {}
-    };
+      try {
+        cardEl.setPointerCapture(e.pointerId);
+      } catch (_) {}
+    });
 
-    const onPointerMove = (e) => {
+    cardEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
       dx = e.clientX - startX;
       dy = e.clientY - startY;
@@ -482,74 +516,70 @@
       const rotate = dx * 0.055;
       cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg)`;
 
-      if (likeStamp) likeStamp.style.opacity = dx > 20 ? String(Math.min(1, (dx - 20) / 85)) : "0";
-      if (skipStamp) skipStamp.style.opacity = dx < -20 ? String(Math.min(1, (-dx - 20) / 85)) : "0";
-    };
+      if (stampLike) stampLike.style.opacity = dx > 25 ? String(Math.min((dx - 25) / 85, 1)) : "0";
+      if (stampSkip) stampSkip.style.opacity = dx < -25 ? String(Math.min((-dx - 25) / 85, 1)) : "0";
+    });
 
-    const onPointerUp = (e) => {
+    function finishGesture() {
       if (!dragging) return;
       dragging = false;
-      try { cardEl.releasePointerCapture(e.pointerId); } catch (_) {}
 
       if (dx >= SWIPE_THRESHOLD_X) {
-        performSwipe(true, cardEl, cardData);
+        performSwipe(true);
       } else if (dx <= -SWIPE_THRESHOLD_X) {
-        performSwipe(false, cardEl, cardData);
+        performSwipe(false);
       } else {
         cardEl.classList.add("is-animating");
         cardEl.style.transform = "";
-        if (likeStamp) likeStamp.style.opacity = "0";
-        if (skipStamp) skipStamp.style.opacity = "0";
+        if (stampLike) stampLike.style.opacity = "0";
+        if (stampSkip) stampSkip.style.opacity = "0";
       }
-    };
+    }
 
-    cardEl.addEventListener("pointerdown", onPointerDown);
-    cardEl.addEventListener("pointermove", onPointerMove);
-    cardEl.addEventListener("pointerup", onPointerUp);
-    cardEl.addEventListener("pointercancel", onPointerUp);
+    cardEl.addEventListener("pointerup", finishGesture);
+    cardEl.addEventListener("pointercancel", finishGesture);
   }
 
-  async function performSwipe(isLike, cardElParam, cardDataParam) {
+  // ================= ВЫПОЛНЕНИЕ СВАЙПА (swipes.is_like BOOLEAN) =================
+  async function performSwipe(isLike) {
     if (state.isAnimating || !state.cards.length) return;
 
     const currentUser = window.MPStorage.getUser();
-    if (currentUser?.role === "guest") {
-      showToast("🔒 Гостям доступен просмотр. Выберите роль «Игрок» или «Капитан» в шапке для свайпов!");
-      if (cardElParam) {
-        cardElParam.classList.add("is-animating");
-        cardElParam.style.transform = "";
+    if (!currentUser || currentUser.role === "guest") {
+      showToast("🔒 Гость может только просматривать карточки. Войдите или смените роль в шапке!");
+      const topEl = document.querySelector(".swipe-card.is-top");
+      if (topEl) {
+        topEl.classList.add("is-animating");
+        topEl.style.transform = "";
+        topEl.querySelectorAll(".swipe-stamp").forEach((s) => { s.style.opacity = "0"; });
       }
       return;
     }
 
-    const cardEl = cardElParam || document.querySelector("#cardStack .swipe-card.is-top");
-    const cardData = cardDataParam || state.cards[0];
-    if (!cardEl || !cardData) return;
-
     state.isAnimating = true;
-    cardEl.classList.add("is-animating");
+    const card = state.cards[0];
+    const topEl = document.querySelector(".swipe-card.is-top");
 
-    const stamp = cardEl.querySelector(isLike ? ".swipe-stamp--like" : ".swipe-stamp--skip");
-    if (stamp) stamp.style.opacity = "1";
-
-    const flyX = isLike ? window.innerWidth : -window.innerWidth;
-    const rot = isLike ? 25 : -25;
-    cardEl.style.transform = `translate3d(${flyX}px, 50px, 0) rotate(${rot}deg)`;
-    cardEl.style.opacity = "0";
-
-    // История в sessionStorage
-    window.MPStorage.addViewedCard(cardData, isLike);
-    renderSessionHistory();
+    if (topEl) {
+      topEl.classList.add("is-animating");
+      const stamp = topEl.querySelector(isLike ? ".swipe-stamp--like" : ".swipe-stamp--skip");
+      if (stamp) stamp.style.opacity = "1";
+      const flyX = isLike ? window.innerWidth * 0.85 : -window.innerWidth * 0.85;
+      const rot = isLike ? 24 : -24;
+      topEl.style.transform = `translate3d(${flyX}px, 24px, 0) rotate(${rot}deg)`;
+      topEl.style.opacity = "0";
+    }
 
     setTimeout(async () => {
       state.cards.shift();
-      state.isAnimating = false;
+      window.MPStorage.addViewedCard(card, isLike);
+      renderSessionHistory();
       renderDeck();
+      state.isAnimating = false;
 
       try {
-        // POST /api/swipe -> swipes (from_user_id, to_user_id, is_like)
         const res = await window.MPApi.sendSwipe({
-          to_user_id: cardData.user_id,
+          to_user_id: card.user_id,
           is_like: Boolean(isLike)
         });
 
@@ -567,9 +597,10 @@
     if (state.isAnimating) return;
     const last = window.MPStorage.popLastViewedCard();
     if (!last || !last.cardSnapshot) {
-      showToast("ℹ️ В истории текущей сессии нет анкет для возврата");
+      showToast("ℹ️ В истории текущей сессии нет карточек для возврата");
       return;
     }
+    window.MPApi.undoSeedSwipe?.(last.to_user_id);
     state.cards.unshift(last.cardSnapshot);
     renderDeck();
     renderSessionHistory();
@@ -596,20 +627,24 @@
     if (!state.matches.length) {
       listEl.innerHTML = `
         <div style="text-align:center;padding:28px 12px;color:var(--text-muted);font-size:0.84rem">
-          Взаимных мэтчей пока нет.<br>При совпадении лайков здесь откроется <code>profiles.contacts</code> и лобби-чат.
+          Взаимных мэтчей пока нет.<br>При совпадении лайков здесь раскроется <code>profiles.contacts</code> и лобби-чат.
         </div>
       `;
       return;
     }
 
     listEl.innerHTML = state.matches.map((m) => {
-      const p = m.partner;
+      const p = m.partner || {};
       const contacts = p.contacts || {};
+      const contactButtons = Object.entries(contacts)
+        .map(([key, val]) => `<button type="button" class="contact-tag" data-copy="${esc(val)}">📋 ${esc(key)}: ${esc(val)}</button>`)
+        .join("");
+
       return `
         <div class="match-item">
           <div class="match-item__head">
             <div class="match-item__avatar" style="background:${p.gradient || "linear-gradient(135deg,#7c5cff,#4f46e5)"}">
-              ${initialsFromName(p.nickname)}
+              ${avatarInnerHTML(p.avatar_url, p.nickname)}
             </div>
             <div class="match-item__info">
               <b>${esc(p.nickname)}</b>
@@ -618,9 +653,7 @@
             <button type="button" class="btn btn--primary btn--sm" data-open-chat="${p.user_id}">💬 Чат</button>
           </div>
           <div class="match-contacts">
-            ${Object.entries(contacts).map(([key, val]) =>
-              `<button type="button" class="contact-tag" data-copy="${esc(val)}">📋 ${esc(key)}: ${esc(val)}</button>`
-            ).join("")}
+            ${contactButtons || `<span class="text-xs text-muted">Контакты не заполнены</span>`}
           </div>
         </div>
       `;
@@ -630,7 +663,7 @@
       btn.addEventListener("click", () => {
         const val = btn.getAttribute("data-copy");
         navigator.clipboard?.writeText(val).catch(() => {});
-        showToast(`📋 Скопировано из contacts: ${val}`);
+        showToast(`📋 Скопировано из profiles.contacts: ${val}`);
       });
     });
 
@@ -644,15 +677,19 @@
   }
 
   function openMatchCelebration(matchObj) {
-    const p = matchObj.partner;
+    const p = matchObj.partner || {};
     const viewer = window.MPStorage.getUser();
 
-    document.getElementById("matchViewerAvatar").textContent = initialsFromName(viewer.nickname || "MP");
-    const targetAv = document.getElementById("matchTargetAvatar");
-    targetAv.textContent = initialsFromName(p.nickname);
-    targetAv.style.background = p.gradient || "linear-gradient(135deg, #16a34a, #15803d)";
+    const viewerAv = document.getElementById("matchViewerAvatar");
+    if (viewerAv) viewerAv.innerHTML = avatarInnerHTML(viewer.avatar_url, viewer.nickname);
 
-    document.getElementById("matchTargetName").textContent = p.nickname;
+    const targetAv = document.getElementById("matchTargetAvatar");
+    if (targetAv) {
+      targetAv.innerHTML = avatarInnerHTML(p.avatar_url, p.nickname);
+      targetAv.style.background = p.gradient || "linear-gradient(135deg, #16a34a, #15803d)";
+    }
+
+    document.getElementById("matchTargetName").textContent = p.nickname || "тиммейт";
     document.getElementById("matchTargetMeta").textContent =
       `${p.discipline_name || ""} • ${p.role_name || ""} • Trust ★ ${Number(p.trust_score || 5).toFixed(2)}`;
 
@@ -677,7 +714,7 @@
 
     if (!state.chatMessagesByUser[partner.user_id]) {
       state.chatMessagesByUser[partner.user_id] = [
-        { from: "them", text: partner.greeting || "Привет! Отличный мэтч, погнали в лобби!" }
+        { from: "them", text: partner.greeting || "Привет! Отличный мэтч, идём в лобби?" }
       ];
     }
     renderChatMessages(partner.user_id);
@@ -705,13 +742,14 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  // ================= ЧЕРНОВИКИ ФОРМ (sessionStorage) И ЖАЛОБЫ =================
+  // ================= МОДАЛКИ: ЧЕРНОВИК ВАКАНСИИ, ЖАЛОБЫ И АВТОРИЗАЦИЯ =================
   function initFormsAndModals() {
+    // 1. Лобби-чат (с проверкой users.status === 'muted' из 01_schema.sql)
     document.getElementById("chatForm")?.addEventListener("submit", (e) => {
       e.preventDefault();
       const viewer = window.MPStorage.getUser();
       if (viewer?.status === "muted") {
-        showToast("🔇 Ваш аккаунт в статусе muted — отправка сообщений ограничена");
+        showToast("🔇 Ваш аккаунт в статусе muted (мут) — отправка сообщений в чат заблокирована");
         return;
       }
       const partner = state.activePartnerForChat;
@@ -727,7 +765,7 @@
       setTimeout(() => {
         state.chatMessagesByUser[partner.user_id].push({
           from: "them",
-          text: "Договорились! Уже захожу в голосовой канал 🚀"
+          text: "Договорились! Захожу в Discord / лобби 🚀"
         });
         if (state.activePartnerForChat?.user_id === partner.user_id) {
           renderChatMessages(partner.user_id);
@@ -735,7 +773,7 @@
       }, 650);
     });
 
-    // Черновик формы создания вакансии команды (teams: name, discipline_id, looking_for_role_id, description)
+    // 2. Черновик вакансии команды (teams) в sessionStorage
     const draftDiscSelect = document.getElementById("draftDisciplineId");
     const draftRoleSelect = document.getElementById("draftLookingRoleId");
 
@@ -768,31 +806,98 @@
         if (badge && (draft.name || draft.description)) badge.style.display = "inline-flex";
       });
 
-      teamDraftForm.addEventListener("submit", (e) => {
+      teamDraftForm.addEventListener("submit", async (e) => {
         e.preventDefault();
-        window.MPStorage.clearDraft("team_vacancy_form");
-        teamDraftForm.reset();
-        updateDraftRoleOptions(draftDiscSelect?.value || 1);
-        const badge = document.getElementById("draftRestoredBadge");
-        if (badge) badge.style.display = "none";
-        closeModal("draftModal");
-        showToast("✅ Черновик вакансии отправлен и очищен из sessionStorage");
+        const viewer = window.MPStorage.getUser();
+        if (viewer.role === "guest") {
+          showToast("🔒 Авторизуйтесь, чтобы опубликовать вакансию команды");
+          return;
+        }
+
+        try {
+          await window.MPApi.createTeam({
+            name: document.getElementById("draftTeamName").value,
+            discipline_id: draftDiscSelect.value,
+            looking_for_role_id: draftRoleSelect.value,
+            description: document.getElementById("draftDescription").value
+          });
+          window.MPStorage.clearDraft("team_vacancy_form");
+          teamDraftForm.reset();
+          updateDraftRoleOptions(draftDiscSelect?.value || 1);
+          const badge = document.getElementById("draftRestoredBadge");
+          if (badge) badge.style.display = "none";
+          closeModal("draftModal");
+          loadCards();
+          showToast("✅ Вакансия команды опубликована, черновик очищен из sessionStorage");
+        } catch (err) {
+          showToast(`⚠️ ${err.message}`);
+        }
       });
     }
 
-    // Форма жалобы (reports: target_user_id, reason)
+    // 3. Жалоба модератору (reports)
     document.getElementById("reportForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!state.reportTargetCard) return;
       const reason = document.getElementById("reportReason").value.trim();
       if (!reason) return;
-      await window.MPApi.sendReport({
-        target_user_id: state.reportTargetCard.user_id,
-        reason
+
+      try {
+        await window.MPApi.sendReport({
+          target_user_id: state.reportTargetCard.user_id,
+          reason
+        });
+        document.getElementById("reportReason").value = "";
+        closeModal("reportModal");
+        showToast(`🚩 Жалоба на @${state.reportTargetCard.nickname} передана модераторам`);
+      } catch (err) {
+        showToast(`⚠️ ${err.message}`);
+      }
+    });
+
+    // 4. Модалка реального входа / регистрации (/api/auth/login и /api/auth/register)
+    const authTabs = document.querySelectorAll("[data-auth-tab]");
+    const nicknameGroup = document.getElementById("authNicknameGroup");
+    const authSubmitBtn = document.getElementById("authSubmitBtn");
+
+    authTabs.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.authMode = btn.getAttribute("data-auth-tab");
+        authTabs.forEach((b) => b.classList.toggle("is-active", b === btn));
+        if (nicknameGroup) nicknameGroup.style.display = state.authMode === "register" ? "flex" : "none";
+        if (authSubmitBtn) {
+          authSubmitBtn.textContent = state.authMode === "register" ? "Зарегистрироваться" : "Войти в аккаунт";
+        }
       });
-      document.getElementById("reportReason").value = "";
-      closeModal("reportModal");
-      showToast(`🚩 Жалоба на @${state.reportTargetCard.nickname} отправлена модераторам`);
+    });
+
+    document.querySelectorAll("[data-seed-email]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.getElementById("authEmail").value = btn.getAttribute("data-seed-email");
+        document.getElementById("authPassword").value = "password";
+      });
+    });
+
+    document.getElementById("authForm")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("authEmail").value.trim();
+      const password = document.getElementById("authPassword").value;
+      const nickname = document.getElementById("authNickname")?.value.trim() || "";
+
+      try {
+        const res = state.authMode === "register"
+          ? await window.MPApi.register({ email, password, nickname })
+          : await window.MPApi.login({ email, password });
+
+        window.MPStorage.clearViewedCards();
+        updateHeaderAuthUI();
+        renderSessionHistory();
+        await Promise.all([loadCards(), loadMatches()]);
+        closeModal("authModal");
+        showToast(`✅ Вы вошли как @${res.user.nickname} (${res.source === "server" ? "PostgreSQL JWT" : "02_seed.sql"})`);
+      } catch (err) {
+        showToast(`⚠️ ${err.message}`);
+      }
     });
   }
 
@@ -821,8 +926,8 @@
           <span style="font-size:0.73rem;color:var(--text-secondary)">${esc(item.discipline_name)} • ${esc(item.created_at)}</span>
         </div>
         ${item.is_like
-          ? `<span class="trust-badge trust-badge--high">♥ is_like: true</span>`
-          : `<span class="badge" style="background:var(--accent-skip-soft);color:var(--accent-skip)">✕ is_like: false</span>`}
+          ? `<span class="trust-badge trust-badge--high">♥ Лайк</span>`
+          : `<span class="badge" style="background:var(--accent-skip-soft);color:var(--accent-skip)">✕ Пропуск</span>`}
       </div>
     `).join("");
   }
@@ -835,8 +940,14 @@
 
     document.getElementById("btnReport")?.addEventListener("click", () => {
       if (!state.cards.length) return;
+      const viewer = window.MPStorage.getUser();
+      if (viewer.role === "guest") {
+        showToast("🔒 Жалобы доступны только авторизованным пользователям");
+        return;
+      }
       state.reportTargetCard = state.cards[0];
-      document.getElementById("reportTargetLabel").textContent = `@${state.reportTargetCard.nickname} (user_id: ${state.reportTargetCard.user_id})`;
+      document.getElementById("reportTargetLabel").textContent =
+        `@${state.reportTargetCard.nickname} (user_id: ${state.reportTargetCard.user_id})`;
       openModal("reportModal");
     });
 
@@ -844,6 +955,12 @@
     document.getElementById("mobileOpenDraftBtn")?.addEventListener("click", () => {
       setBurgerOpen(false);
       openModal("draftModal");
+    });
+
+    document.getElementById("openAuthModalBtn")?.addEventListener("click", () => openModal("authModal"));
+    document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", () => {
+      setBurgerOpen(false);
+      openModal("authModal");
     });
 
     document.querySelectorAll("[data-right-tab]").forEach((btn) => {
@@ -896,9 +1013,9 @@
     });
   }
 
-  // ================= ЗАПУСК =================
+  // ================= ИНИЦИАЛИЗАЦИЯ =================
   document.addEventListener("DOMContentLoaded", async () => {
-    initHeaderAndTheme();
+    await initHeaderAndSession();
     state.dictionaries = await window.MPApi.getDictionaries();
     initFilters();
     initControls();

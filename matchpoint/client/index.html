@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MatchPoint — Поиск тиммейтов и команд свайпами</title>
   <link rel="stylesheet" href="css/main.css">
-  <link rel="stylesheet" href="css/pages/swipe.css">
   <link rel="stylesheet" href="css/media.css">
 </head>
 <body>
@@ -20,10 +19,10 @@
 
       <nav class="main-nav" aria-label="Основная навигация">
         <a href="index.html" class="nav-link is-active">🔥 Свайпы</a>
-        <a href="events.html" class="nav-link" data-team-page="Модуль ивентов и турниров">🏆 Ивенты</a>
-        <a href="teams.html" class="nav-link" data-team-page="Модуль управления командами">👥 Команды</a>
-        <a href="profile.html" class="nav-link" data-team-page="Модуль профиля и Trust Factor">👤 Профиль</a>
-        <a href="admin.html" class="nav-link" data-team-page="Модуль модерации и админки">🛡 Админ</a>
+        <a href="events.html" class="nav-link">🏆 Ивенты</a>
+        <a href="teams.html" class="nav-link">👥 Команды</a>
+        <a href="profile.html" class="nav-link">👤 Профиль</a>
+        <a href="admin.html" class="nav-link">🛡 Админ</a>
       </nav>
 
       <div class="header-actions">
@@ -31,14 +30,19 @@
           ✏️ + Вакансия
         </button>
 
-        <select class="role-switcher-select hide-on-mobile" id="roleSwitcher" aria-label="Текущая роль (users.role)">
-          <option value="guest">Гость (guest)</option>
-          <option value="player">Игрок (player)</option>
-          <option value="captain" selected>Капитан (captain)</option>
-          <option value="organizer">Организатор (organizer)</option>
-          <option value="moderator">Модератор (moderator)</option>
-          <option value="admin">Админ (admin)</option>
+        <select class="role-switcher-select hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта (02_seed.sql)">
+          <option value="5" selected>ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
         </select>
+
+        <button class="btn btn--ghost btn--sm hide-on-mobile" id="openAuthModalBtn" type="button" title="Вход / Регистрация (/api/auth)">
+          👤 ShadowStep
+        </button>
 
         <button class="theme-toggle" id="themeToggleBtn" type="button" aria-label="Сменить тему оформления">
           ☀️
@@ -57,26 +61,32 @@
   <div class="mobile-drawer-backdrop" id="mobileBackdrop"></div>
   <nav class="mobile-drawer" id="mobileDrawer" aria-label="Мобильная навигация">
     <a href="index.html" class="nav-link is-active">🔥 Поиск свайпами</a>
-    <a href="events.html" class="nav-link" data-team-page="Модуль ивентов и турниров">🏆 Ивенты и Турниры</a>
-    <a href="teams.html" class="nav-link" data-team-page="Модуль управления командами">👥 Команды</a>
-    <a href="profile.html" class="nav-link" data-team-page="Модуль профиля и Trust Factor">👤 Профиль и Trust Factor</a>
-    <a href="admin.html" class="nav-link" data-team-page="Модуль модерации и админки">🛡 Модерация и Админ</a>
+    <a href="events.html" class="nav-link">🏆 Ивенты и Турниры</a>
+    <a href="teams.html" class="nav-link">👥 Команды</a>
+    <a href="profile.html" class="nav-link">👤 Профиль и Trust Factor</a>
+    <a href="admin.html" class="nav-link">🛡 Модерация и Админ</a>
 
     <div class="mobile-drawer__footer">
       <div class="form-group" style="margin-bottom: 0;">
-        <label class="form-label" for="mobileRoleSwitcher">Роль сессии (users.role)</label>
+        <label class="form-label" for="mobileRoleSwitcher">Аккаунт сессии (02_seed.sql)</label>
         <select class="form-control" id="mobileRoleSwitcher">
-          <option value="guest">Гость (guest)</option>
-          <option value="player">Игрок (player)</option>
-          <option value="captain" selected>Капитан (captain)</option>
-          <option value="organizer">Организатор (organizer)</option>
-          <option value="moderator">Модератор (moderator)</option>
-          <option value="admin">Админ (admin)</option>
+          <option value="5" selected>ShadowStep (player)</option>
+          <option value="4">KuroCap (captain)</option>
+          <option value="6">GuestDemo (guest)</option>
+          <option value="3">OrgCyber (organizer)</option>
+          <option value="2">ModWatch (moderator)</option>
+          <option value="1">AdminRoot (admin)</option>
+          <option value="13">TiltKing (muted • 2.10)</option>
         </select>
       </div>
-      <button class="btn btn--primary btn--block" id="mobileOpenDraftBtn" type="button">
-        ✏️ + Создать вакансию команды
-      </button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn--ghost btn--sm" style="flex:1;" id="mobileOpenAuthBtn" type="button">
+          🔐 Вход / Регистрация
+        </button>
+        <button class="btn btn--primary btn--sm" style="flex:1;" id="mobileOpenDraftBtn" type="button">
+          ✏️ + Вакансия
+        </button>
+      </div>
     </div>
   </nav>
 
@@ -95,7 +105,7 @@
 
       <div class="swipe-layout" id="swipeLayout" data-mobile-view="swipe">
 
-        <!-- 1. ЛЕВАЯ ПАНЕЛЬ: ФИЛЬТРЫ ПОИСКА (disciplines, discipline_roles, ranks, profiles) -->
+        <!-- 1. ЛЕВАЯ ПАНЕЛЬ: ФИЛЬТРЫ ПОИСКА -->
         <aside class="side-panel" id="filtersPanel" aria-label="Фильтры подбора тиммейтов">
           <div class="panel-header">
             <h2 class="panel-title">🎛 Фильтры подбора</h2>
@@ -137,10 +147,13 @@
               <label class="form-label" for="fPrimeTime">Прайм-тайм (prime_time)</label>
               <select class="form-control" id="fPrimeTime" name="prime_time">
                 <option value="">Любое время</option>
-                <option value="12:00–18:00">День (12:00–18:00)</option>
-                <option value="18:00–23:00">Вечер (18:00–23:00)</option>
-                <option value="23:00–03:00">Ночь (23:00–03:00)</option>
-                <option value="Выходные">Выходные (Турниры / Джемы)</option>
+                <option value="18:30-23:30">18:30–23:30 (Ранний вечер)</option>
+                <option value="19:00-00:00">19:00–00:00 (Вечер)</option>
+                <option value="20:00-00:00">20:00–00:00 (Вечерний прайм)</option>
+                <option value="20:00-01:00">20:00–01:00 (Основной прайм)</option>
+                <option value="20:00-02:00">20:00–02:00 (Длинный прайм)</option>
+                <option value="22:00-03:00">22:00–03:00 (Ночной)</option>
+                <option value="23:00-04:00">23:00–04:00 (Поздняя ночь)</option>
               </select>
             </div>
 
@@ -148,7 +161,7 @@
               <label class="form-label" for="fMinTrust">Мин. репутация (trust_score)</label>
               <select class="form-control" id="fMinTrust" name="min_trust">
                 <option value="">Любой Trust Factor</option>
-                <option value="4.50">★ от 4.50 и выше</option>
+                <option value="4.50">★ от 4.50 (без токсичности)</option>
                 <option value="4.80">★ от 4.80 и выше</option>
                 <option value="4.90">★ от 4.90 (Топ репутация)</option>
               </select>
@@ -156,7 +169,7 @@
           </form>
 
           <div class="storage-hint">
-            💾 Токен сессии, тема и параметры фильтров сохраняются в <code>localStorage</code>.
+            💾 Токен, тема и фильтры сохраняются в <code>localStorage</code>. Лайк <b>@HeadTap</b> или команды <b>Grodno Five</b> сразу открывает Match!
           </div>
         </aside>
 
@@ -176,7 +189,7 @@
             <button type="button" class="ctrl-btn ctrl-btn--skip" id="btnSkip" title="Пропуск — swipes.is_like = false (←)">
               ✕
             </button>
-            <button type="button" class="ctrl-btn ctrl-btn--report" id="btnReport" title="Пожаловаться на профиль (POST /api/reports)">
+            <button type="button" class="ctrl-btn ctrl-btn--report" id="btnReport" title="Пожаловаться модераторам (reports)">
               🚩
             </button>
             <button type="button" class="ctrl-btn ctrl-btn--like" id="btnLike" title="Лайк — swipes.is_like = true (→)">
@@ -230,11 +243,11 @@
 
         <div class="match-pair">
           <div class="match-pair__avatar" id="matchViewerAvatar" style="background: linear-gradient(135deg, #7c5cff, #4f46e5);">
-            К1
+            SS
           </div>
           <div class="match-pair__bolt">🔥</div>
           <div class="match-pair__avatar" id="matchTargetAvatar">
-            МС
+            HT
           </div>
         </div>
 
@@ -294,7 +307,7 @@
       <form id="teamVacancyDraftForm">
         <div class="form-group">
           <label class="form-label" for="draftTeamName">Название команды (teams.name)</label>
-          <input class="form-control" id="draftTeamName" name="name" placeholder="Например: Minsk Cyber Five" required>
+          <input class="form-control" id="draftTeamName" name="name" placeholder="Например: CyberGrodno Mix" required>
         </div>
         <div class="form-group">
           <label class="form-label" for="draftDisciplineId">Дисциплина (discipline_id)</label>
@@ -326,10 +339,53 @@
       <form id="reportForm">
         <div class="form-group">
           <label class="form-label" for="reportReason">Причина (reports.reason)</label>
-          <textarea class="form-control" id="reportReason" rows="3" placeholder="Опишите нарушение (спам, оскорбления, фейковые ссылки)..." required></textarea>
+          <textarea class="form-control" id="reportReason" rows="3" placeholder="Опишите нарушение (оскорбления, фейковый ранг, спам)..." required></textarea>
         </div>
-        <button type="submit" class="btn btn--danger btn--block">Отправить в Reports Queue</button>
+        <button type="submit" class="btn btn--danger btn--block">Отправить модераторам</button>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= МОДАЛКА АВТОРИЗАЦИИ (/api/auth/login & /register) ================= -->
+  <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+    <div class="modal modal--sm">
+      <button type="button" class="modal__close" data-close-modal="authModal" aria-label="Закрыть">✕</button>
+      <div class="modal__header">
+        <h3 class="modal__title" id="authModalTitle">🔐 Аккаунт MatchPoint</h3>
+        <p class="modal__subtitle">Интеграция с <code>POST /api/auth/login</code> и <code>/api/auth/register</code></p>
+      </div>
+
+      <div class="right-tabs" style="margin-bottom: 14px;">
+        <button type="button" class="segment-btn is-active" data-auth-tab="login">Вход</button>
+        <button type="button" class="segment-btn" data-auth-tab="register">Регистрация</button>
+      </div>
+
+      <form id="authForm">
+        <div class="form-group" id="authNicknameGroup" style="display: none;">
+          <label class="form-label" for="authNickname">Никнейм (profiles.nickname)</label>
+          <input class="form-control" id="authNickname" type="text" placeholder="Ваш игровой ник">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="authEmail">Email (users.email)</label>
+          <input class="form-control" id="authEmail" type="email" value="player@matchpoint.dev" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="authPassword">Пароль (от 6 символов)</label>
+          <input class="form-control" id="authPassword" type="password" value="password" required>
+        </div>
+        <button type="submit" class="btn btn--primary btn--block" id="authSubmitBtn">Войти в аккаунт</button>
+      </form>
+
+      <div class="demo-accounts-box">
+        <div>Быстрая подстановка аккаунтов из <code>02_seed.sql</code> (пароль: <code>password</code>):</div>
+        <div class="demo-accounts-grid">
+          <button type="button" class="btn btn--ghost btn--xs" data-seed-email="player@matchpoint.dev">ShadowStep</button>
+          <button type="button" class="btn btn--ghost btn--xs" data-seed-email="captain@matchpoint.dev">KuroCap</button>
+          <button type="button" class="btn btn--ghost btn--xs" data-seed-email="mod@matchpoint.dev">ModWatch</button>
+          <button type="button" class="btn btn--ghost btn--xs" data-seed-email="admin@matchpoint.dev">AdminRoot</button>
+          <button type="button" class="btn btn--ghost btn--xs" data-seed-email="toxic@matchpoint.dev">TiltKing (muted)</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -338,5 +394,5 @@
   <script src="js/storage.js"></script>
   <script src="js/api.js"></script>
   <script src="js/swipe.js"></script>
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a5fa0c588d498028',t:'MTc5NTU0MDQ0OA=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a5fa0c588d498028',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
