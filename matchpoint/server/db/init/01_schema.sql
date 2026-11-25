@@ -178,6 +178,19 @@ CREATE TABLE reports (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- 10. Логи аудита действий модераторов и администраторов
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id SERIAL PRIMARY KEY,
+    actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    action VARCHAR(60) NOT NULL,
+    target_type VARCHAR(40) NOT NULL,
+    target_id INTEGER,
+    details JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs (created_at DESC);
+
 -- Базовые индексы под частые выборки
 CREATE INDEX idx_profile_disc_lookup ON profile_disciplines (discipline_id, role_id, rank_id);
 CREATE INDEX idx_swipes_to_user ON swipes (to_user_id, is_like);
