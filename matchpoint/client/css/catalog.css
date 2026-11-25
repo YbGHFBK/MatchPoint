@@ -4,14 +4,15 @@
 
 #content {
   min-height: 75vh;
-  padding-bottom: 40px;
+  padding-top: 24px;
+  padding-bottom: 48px;
 }
 
 #content h1 {
   font-family: 'Press Start 2P', monospace;
   font-size: clamp(1.05rem, 2.2vw, 1.55rem);
   line-height: 1.4;
-  color: #ffffff;
+  color: var(--text-main);
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -22,7 +23,7 @@
   font-family: 'Press Start 2P', monospace;
   font-size: 0.78rem;
   line-height: 1.45;
-  color: #ffffff;
+  color: var(--text-main);
   margin: 0;
   letter-spacing: 0.03em;
 }
@@ -121,7 +122,7 @@
 
 .catalog-card h2 a,
 .catalog-card h3 a {
-  color: #ffffff;
+  color: var(--text-main);
   text-decoration: none;
 }
 
@@ -235,7 +236,7 @@
 }
 
 #content .member strong {
-  color: #ffffff;
+  color: var(--text-main);
 }
 
 #content .back {
@@ -258,34 +259,27 @@
   color: var(--accent-gold);
 }
 
-#content a:not(.arcade-btn):not(.back) {
+#content a:not(.arcade-btn):not(.btn):not(.back) {
   color: var(--accent-cyan);
 }
 
-#content a:not(.arcade-btn):not(.back):hover {
+#content a:not(.arcade-btn):not(.btn):not(.back):hover {
   color: var(--accent-gold);
 }
 
-/* Кнопки внутри форм teams.js / event-detail.js, использующие класс .btn */
-#content .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 7px 12px;
-  background: #2A253D;
-  border: 2px solid var(--border-bright);
-  color: var(--text-main);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 0.52rem;
-  cursor: pointer;
+/* Ссылки-кнопки внутри каталогов */
+#content a.btn {
   text-decoration: none;
-  box-shadow: 0px 3px 0px var(--shadow-hard);
 }
 
-#content .btn:hover {
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
+#content .btn--primary,
+#content .btn--primary:hover {
+  color: #081C15;
+}
+
+[data-theme="light"] #content .btn--primary,
+[data-theme="light"] #content .btn--primary:hover {
+  color: #FFFFFF;
 }
 
 .match {

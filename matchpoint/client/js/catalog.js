@@ -12,11 +12,11 @@ const Hub = (function () {
     );
   const option = (value, label) => `<option value="${escape(value)}">${escape(label)}</option>`;
   const field = (label, control) =>
-    `<label class="form-group"><span class="form-label">${escape(label)}</span>${control}</label>`;
+    `<label class="arcade-form-group form-group"><span class="arcade-label form-label">${escape(label)}</span>${control}</label>`;
   const input = (name, type = "text", attrs = "") =>
-    `<input class="form-control" type="${type}" name="${name}" ${attrs}>`;
+    `<input class="arcade-input form-control" type="${type}" name="${name}" ${attrs}>`;
   const select = (name, options, attrs = "") =>
-    `<select class="form-control" name="${name}" ${attrs}>${options}</select>`;
+    `<select class="arcade-select form-control" name="${name}" ${attrs}>${options}</select>`;
   const button = (label) => `<button class="btn btn--primary" type="submit">${escape(label)}</button>`;
   const link = (href, label) =>
     `<a class="btn btn--ghost btn--sm" href="${escape(href)}">${escape(label)}</a>`;
