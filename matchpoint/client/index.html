@@ -26,9 +26,6 @@
       </nav>
 
       <div class="header-actions">
-        <button class="btn btn--ghost btn--sm hide-on-mobile" id="openDraftModalBtn" type="button" title="Черновик вакансии в sessionStorage">
-          ✏️ + Вакансия
-        </button>
 
         <select class="role-switcher-select hide-on-mobile" id="roleSwitcher" aria-label="Переключение сид-аккаунта (02_seed.sql)">
           <option value="5" selected>ShadowStep (player)</option>
@@ -82,9 +79,6 @@
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn--ghost btn--sm" style="flex:1;" id="mobileOpenAuthBtn" type="button">
           🔐 Вход / Регистрация
-        </button>
-        <button class="btn btn--primary btn--sm" style="flex:1;" id="mobileOpenDraftBtn" type="button">
-          ✏️ + Вакансия
         </button>
       </div>
     </div>
@@ -286,42 +280,6 @@
           autocomplete="off"
         >
         <button type="submit" class="btn btn--primary">Отправить</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ================= МОДАЛКА ЧЕРНОВИКА ВАКАНСИИ КОМАНДЫ (sessionStorage) ================= -->
-  <div class="modal-overlay" id="draftModal" role="dialog" aria-modal="true" aria-labelledby="draftModalTitle">
-    <div class="modal">
-      <button type="button" class="modal__close" data-close-modal="draftModal" aria-label="Закрыть">✕</button>
-      <div class="modal__header">
-        <h3 class="modal__title" id="draftModalTitle">Черновик объявления в команду</h3>
-        <p class="modal__subtitle">
-          Поля формы (таблица <code>teams</code>) автоматически сохраняются в <code>sessionStorage</code> при наборе текста.
-          <span id="draftRestoredBadge" class="trust-badge trust-badge--high" style="display:none;margin-top:6px;">
-            ✓ Черновик восстановлен из sessionStorage
-          </span>
-        </p>
-      </div>
-
-      <form id="teamVacancyDraftForm">
-        <div class="form-group">
-          <label class="form-label" for="draftTeamName">Название команды (teams.name)</label>
-          <input class="form-control" id="draftTeamName" name="name" placeholder="Например: CyberGrodno Mix" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="draftDisciplineId">Дисциплина (discipline_id)</label>
-          <select class="form-control" id="draftDisciplineId" name="discipline_id"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="draftLookingRoleId">Разыскиваемая роль (looking_for_role_id)</label>
-          <select class="form-control" id="draftLookingRoleId" name="looking_for_role_id"></select>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="draftDescription">Описание и прайм-тайм (description)</label>
-          <textarea class="form-control" id="draftDescription" name="description" rows="3" placeholder="Кого ищете, минимальный ранг/грейд и цели команды..."></textarea>
-        </div>
-        <button type="submit" class="btn btn--primary btn--block">🚀 Опубликовать вакансию</button>
       </form>
     </div>
   </div>
