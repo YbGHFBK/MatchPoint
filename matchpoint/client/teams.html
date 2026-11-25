@@ -1,20 +1,23 @@
+
 <!doctype html>
 <html lang="ru" data-theme="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Команды — MatchPoint</title>
-    <link rel="stylesheet" href="css/main.css" />
-    <link rel="stylesheet" href="css/media.css" />
-    <link rel="stylesheet" href="css/catalog.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet" />
+    <!-- Единая 16-бит дизайн-система (раньше: main.css + media.css + catalog.css) -->
+    <link rel="stylesheet" href="css/arcade.css" />
   </head>
-  <body>
-    <header class="site-header" id="siteHeader"></header>
-    <main class="container page-shell" id="content" aria-label="Команды"><p role="status">Загрузка…</p></main>
+  <body class="arcade-theme">
+    <header class="arcade-header" id="siteHeader"></header>
+    <main class="arcade-container page-shell" id="content" aria-label="Команды"><p role="status">Загрузка…</p></main>
     <div id="notice" role="status" aria-live="polite"></div>
     <script src="js/storage.js"></script>
     <script src="js/api.js"></script>
     <script src="js/catalog.js"></script>
     <script src="js/teams.js"></script>
-  </body>
+  <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a60360cbd90fd17b',t:'MTc5NTYzODI3OQ=='};var l=window.parent.location,o;try{o=new URL(l.origin).origin}catch(e){try{o=new URL(new URL(l.href).origin).origin}catch(e){o=''}}var u='/cdn-cgi/challenge-platform/scripts/jsd/main.js?ray=a60360cbd90fd17b',a=document.createElement('script');a.src=o?new URL(u,o).href:u;document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
