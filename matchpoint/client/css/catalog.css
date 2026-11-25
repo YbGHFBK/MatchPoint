@@ -1,27 +1,52 @@
+/* ==========================================================================
+   MatchPoint — Стили каталогов команд и ивентов (единая 16-bit Arcade тема)
+   ========================================================================== */
+
 #content {
-  padding: clamp(24px, 4vw, 56px) clamp(14px, 3vw, 32px);
-  min-height: 80vh;
+  min-height: 75vh;
+  padding-bottom: 40px;
 }
+
 #content h1 {
-  font-size: clamp(2rem, 4vw, 3.4rem);
-  line-height: 1.06;
-  letter-spacing: -0.045em;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(1.05rem, 2.2vw, 1.55rem);
+  line-height: 1.4;
+  color: #ffffff;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   overflow-wrap: anywhere;
 }
+
 #content h2 {
-  font-size: var(--fs-xl);
-  letter-spacing: -0.025em;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: #ffffff;
+  margin: 0;
+  letter-spacing: 0.03em;
 }
+
 #content h3 {
-  font-size: var(--fs-md);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.64rem;
+  line-height: 1.45;
+  color: var(--accent-gold);
+  margin: 8px 0 4px;
 }
+
 #content .mp-card {
   display: grid;
-  gap: 15px;
-  padding: clamp(16px, 2.5vw, 28px);
+  gap: 14px;
+  padding: 20px;
   align-content: start;
   min-width: 0;
+  background: var(--bg-panel);
+  border: 2px solid var(--border-pixel);
+  box-shadow: 4px 4px 0px var(--shadow-hard);
+  color: var(--text-main);
 }
+
 .catalog-header,
 .row,
 .filters,
@@ -32,209 +57,291 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
 .catalog-header,
 .item-line {
   justify-content: space-between;
 }
+
 .catalog-header {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--border-dark);
 }
+
 .filters {
-  margin: 12px 0 24px;
+  margin: 0 0 22px;
+  padding: 16px;
+  background: var(--bg-panel);
+  border: 2px solid var(--border-pixel);
+  box-shadow: 4px 4px 0px var(--shadow-hard);
 }
+
 .filters label {
-  min-width: 145px;
+  min-width: 190px;
+  flex: 1 1 210px;
 }
+
 .catalog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 18px;
 }
+
 .catalog-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(235px, 1fr);
-  gap: 22px;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 20px;
   align-items: start;
 }
+
 .stack {
   display: grid;
   gap: 18px;
   min-width: 0;
 }
-.catalog-card {
-  border-top: 3px solid var(--accent-lime);
+
+#content .catalog-card {
+  display: flex;
+  flex-direction: column;
+  border-top: 4px solid var(--accent-mint);
+  background: linear-gradient(180deg, var(--bg-card) 0%, var(--bg-panel) 100%);
   overflow-wrap: anywhere;
+  transition: transform 0.12s ease, border-color 0.12s ease;
 }
-.catalog-card.it {
+
+#content .catalog-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-gold);
+}
+
+#content .catalog-card.it {
   border-top-color: var(--accent-violet);
 }
+
 .catalog-card h2 a,
 .catalog-card h3 a {
-  color: inherit;
+  color: #ffffff;
   text-decoration: none;
 }
-.catalog-card a:hover {
-  text-decoration: underline;
+
+.catalog-card h2 a:hover,
+.catalog-card h3 a:hover {
+  color: var(--accent-gold);
 }
+
 .date-tile,
 .team-mark {
   display: grid;
   place-items: center;
-  border-radius: var(--radius-sm);
-  background: var(--accent-lime-soft);
-  color: var(--accent-lime);
-  padding: 8px 14px;
-  min-width: 60px;
-  font-weight: 800;
+  background: var(--bg-void);
+  border: 2px solid var(--accent-mint);
+  color: var(--accent-mint);
+  padding: 8px 12px;
+  min-width: 58px;
+  font-family: 'Press Start 2P', monospace;
+  box-shadow: 2px 2px 0px var(--shadow-hard);
 }
+
 .date-tile b {
-  font-size: 1.65rem;
-  line-height: 1;
+  font-size: 1.05rem;
+  line-height: 1.1;
 }
+
 .date-tile small {
-  font-size: 0.72rem;
+  font-size: 0.48rem;
   text-transform: uppercase;
+  margin-top: 4px;
+  color: var(--text-dim);
 }
+
 .it .date-tile,
 .team-mark {
-  background: var(--accent-violet-soft);
-  color: var(--text-primary);
+  border-color: var(--accent-violet);
+  color: var(--accent-gold);
 }
+
 .team-mark {
-  font-size: 1.25rem;
+  font-size: 0.9rem;
+  min-height: 44px;
 }
+
 .card-meta,
 .muted {
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
+  font-size: 0.8rem;
+  color: var(--text-dim);
 }
+
 .catalog-card p,
-.mp-card dd {
+.mp-card p {
+  margin: 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text-dim);
   overflow-wrap: anywhere;
 }
+
 .card-end {
   padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 2px solid var(--border-dark);
 }
-#content form {
-  display: grid;
-  gap: 14px;
-}
-#content label.form-group {
-  margin: 0;
-  color: var(--text-secondary);
-}
-#content summary {
-  cursor: pointer;
-  font-weight: 700;
-}
-#content details[open] > summary {
-  margin-bottom: 12px;
-}
-#content .member {
-  padding-block: 10px;
-  border-bottom: 1px solid var(--border-subtle);
-}
-#content .back {
-  display: inline-block;
-  margin-bottom: 16px;
-}
-#notice:not(:empty) {
-  position: fixed;
-  bottom: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1100;
-  max-width: 90vw;
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  padding: 12px 18px;
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  box-shadow: var(--shadow-md);
-}
-#siteHeader .header-inner {
-  min-height: 62px;
-}
-#siteHeader .brand {
-  color: var(--text-primary);
-}
-#content .catalog-card {
-  display: flex;
-  flex-direction: column;
-}
+
 .catalog-card .card-end {
   margin-top: auto;
 }
-#siteHeader .mobile-links {
-  display: none;
+
+#content form {
+  display: grid;
+  gap: 12px;
 }
-#siteHeader select {
-  max-width: 170px;
+
+#content label.form-group {
+  margin: 0;
 }
+
+#content textarea.form-control {
+  width: 100%;
+  min-height: 84px;
+  padding: 10px 12px;
+  background: var(--bg-inset);
+  border: 2px solid var(--border-pixel);
+  color: var(--text-main);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.84rem;
+  resize: vertical;
+}
+
+#content textarea.form-control:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+}
+
+#content summary {
+  cursor: pointer;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.62rem;
+  color: var(--accent-gold);
+  line-height: 1.5;
+}
+
+#content details[open] > summary {
+  margin-bottom: 14px;
+}
+
+#content .member {
+  padding: 10px 12px;
+  background: var(--bg-inset);
+  border: 2px solid var(--border-dark);
+}
+
+#content .member strong {
+  color: #ffffff;
+}
+
+#content .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding: 7px 12px;
+  background: var(--bg-panel);
+  border: 2px solid var(--border-pixel);
+  color: var(--accent-cyan);
+  text-decoration: none;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.54rem;
+  box-shadow: 2px 2px 0px var(--shadow-hard);
+}
+
+#content .back:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
+#content a:not(.arcade-btn):not(.back) {
+  color: var(--accent-cyan);
+}
+
+#content a:not(.arcade-btn):not(.back):hover {
+  color: var(--accent-gold);
+}
+
+/* Кнопки внутри форм teams.js / event-detail.js, использующие класс .btn */
+#content .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #2A253D;
+  border: 2px solid var(--border-bright);
+  color: var(--text-main);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 0.52rem;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0px 3px 0px var(--shadow-hard);
+}
+
+#content .btn:hover {
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+}
+
 .match {
-  border-left: 3px solid var(--accent-violet);
+  border: 2px solid var(--border-pixel);
+  border-left: 4px solid var(--accent-violet);
   padding: 14px;
-  background: var(--bg-secondary);
-  border-radius: 8px;
+  background: var(--bg-inset);
+  box-shadow: 3px 3px 0px var(--shadow-hard);
 }
+
 .round {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
+
 .create-panel {
-  margin-top: 20px;
+  margin-top: 8px;
+  border-color: var(--accent-gold) !important;
 }
+
+#notice:not(:empty) {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1100;
+  max-width: min(420px, 90vw);
+  background: var(--bg-card);
+  color: var(--accent-mint);
+  padding: 12px 16px;
+  border: 2px solid var(--accent-mint);
+  box-shadow: 4px 4px 0px var(--shadow-hard);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
 #content [hidden] {
   display: none !important;
 }
+
 @media (max-width: 900px) {
   .catalog-layout {
     grid-template-columns: 1fr;
   }
-  #siteHeader .main-nav {
-    display: none;
-  }
-  #siteHeader .mobile-links {
-    display: block;
-  }
-  #siteHeader .mobile-links nav {
-    position: absolute;
-    right: 12px;
-    top: 56px;
-    display: grid;
-    background: var(--bg-elevated);
-    padding: 12px;
-    border-radius: 12px;
-    box-shadow: var(--shadow-md);
-    z-index: 30;
-  }
 }
+
 @media (max-width: 580px) {
-  #siteHeader .header-inner {
-    flex-wrap: wrap;
-    gap: 4px;
-    padding-block: 8px;
-  }
-  #siteHeader .header-actions {
-    gap: 5px;
-  }
-  #siteHeader select {
-    max-width: 99px;
-  }
-  #siteHeader .brand {
-    font-size: 1rem;
-  }
   .filters {
     align-items: stretch;
   }
   .filters label {
-    flex: 1;
+    flex: 1 1 100%;
   }
   .catalog-grid {
     grid-template-columns: 1fr;
   }
-  .card-end .btn {
+  .card-end .arcade-btn {
     width: 100%;
   }
 }

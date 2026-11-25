@@ -9,6 +9,7 @@
     catalog: [],
     currentProfile: null,
     viewingUserId: null, // null = собственный профиль
+    activeTab: "edit",
     selectedScore: 5,
     authMode: "login",
     draftController: null
@@ -88,6 +89,18 @@
     return null;
   }
 
+  function switchProfileTab(tabName) {
+    state.activeTab = tabName;
+    document.querySelectorAll("[data-profile-tab]").forEach((btn) => {
+      const active = btn.dataset.profileTab === tabName;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+      panel.classList.toggle("is-active", panel.dataset.tabPanel === tabName);
+    });
+  }
+
   function updateHeaderUI() {
     const user = window.MPStorage.getUser();
     const roleSelect = document.getElementById("roleSwitcher");
@@ -100,20 +113,12 @@
       mobileRoleSelect.value = String(user.id);
     }
     if (authBtn) {
-      authBtn.textContent = user.role === "guest" ? "🔐 Войти" : `👤 ${user.nickname}`;
+      authBtn.textContent = user.role === "guest" ? "🔐 ВОЙТИ" : `👤 ${user.nickname}`;
     }
   }
 
   function initHeaderControls() {
-    const theme = window.MPStorage.initTheme();
-    const themeBtn = document.getElementById("themeToggleBtn");
-    if (themeBtn) {
-      themeBtn.textContent = theme === "dark" ? "☀️" : "🌙";
-      themeBtn.addEventListener("click", () => {
-        const next = window.MPStorage.toggleTheme();
-        themeBtn.textContent = next === "dark" ? "☀️" : "🌙";
-      });
-    }
+    window.MPStorage.initTheme();
 
     const burgerBtn = document.getElementById("burgerBtn");
     const drawer = document.getElementById("mobileDrawer");
@@ -165,7 +170,7 @@
         state.authMode = tab.dataset.authTab;
         document.querySelectorAll("[data-auth-tab]").forEach((t) => t.classList.toggle("is-active", t === tab));
         document.getElementById("authNicknameGroup").style.display = state.authMode === "register" ? "block" : "none";
-        document.getElementById("authSubmitBtn").textContent = state.authMode === "register" ? "Создать аккаунт" : "Войти в аккаунт";
+        document.getElementById("authSubmitBtn").textContent = state.authMode === "register" ? "СОЗДАТЬ АККАУНТ" : "ВОЙТИ В АККАУНТ";
       });
     });
 
@@ -192,12 +197,17 @@
     });
   }
 
-  function renderHero(profile, isOwn) {
+  function renderAvatar(avatarUrl, nickname) {
     const avatarEl = document.getElementById("heroAvatar");
-    const initials = esc((profile.nickname || "MP").slice(0, 2).toUpperCase());
-    avatarEl.innerHTML = profile.avatar_url
-      ? `<img src="${esc(profile.avatar_url)}" alt="${esc(profile.nickname)}" onerror="this.replaceWith(document.createTextNode('${initials}'))">`
+    if (!avatarEl) return;
+    const initials = esc((nickname || "MP").slice(0, 2).toUpperCase());
+    avatarEl.innerHTML = avatarUrl
+      ? `<img src="${esc(avatarUrl)}" alt="${esc(nickname)}" onerror="this.replaceWith(document.createTextNode('${initials}'))">`
       : initials;
+  }
+
+  function renderHero(profile, isOwn) {
+    renderAvatar(profile.avatar_url, profile.nickname);
 
     document.getElementById("heroNickname").textContent = profile.nickname || "Без имени";
     document.getElementById("heroRoleBadge").textContent = profile.role || "player";
@@ -212,7 +222,7 @@
     document.getElementById("heroBio").textContent = profile.bio || "Описание профиля пока не заполнено.";
 
     const linksBox = document.getElementById("heroExternalLinks");
-    const linkLabels = { steam: "🎮 Steam", faceit: "⚡ Faceit", github: "💻 GitHub", gitlab: "🦊 GitLab" };
+    const linkLabels = { steam: "🎮 STEAM", faceit: "⚡ FACEIT", github: "💻 GITHUB", gitlab: "🦊 GITLAB" };
     const pills = [];
     if (profile.prime_time) {
       pills.push(`<span class="ext-link-pill">🕒 ${esc(profile.prime_time)}</span>`);
@@ -220,10 +230,10 @@
     Object.entries(linkLabels).forEach(([key, label]) => {
       const href = profile.external_links?.[key];
       if (href) {
-        pills.push(`<a class="ext-link-pill" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label}</a>`);
+        pills.push(`<a class="ext-link-pill" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`);
       }
     });
-    linksBox.innerHTML = pills.join("") || '<span class="text-xs text-muted">Внешние ссылки не добавлены</span>';
+    linksBox.innerHTML = pills.join("") || '<span class="text-xs text-muted">Внешние профили не указаны</span>';
 
     const score = Number(profile.trust_score ?? 5);
     const level = trustClass(score);
@@ -232,16 +242,34 @@
     badge.className = `trust-badge trust-badge--${level}`;
     document.getElementById("heroTrustMeta").textContent = `${trustLabel(score)} • оценок: ${profile.ratings_count ?? 0}`;
 
-    document.getElementById("publicProfileActions").style.display = isOwn ? "none" : "flex";
+    // KPI-плитки под Hero
+    const statDisc = document.getElementById("statDisciplines");
+    const statTrust = document.getElementById("statTrust");
+    const statPrime = document.getElementById("statPrimeTime");
+    if (statDisc) statDisc.textContent = String((profile.disciplines || []).length);
+    if (statTrust) statTrust.textContent = `${score.toFixed(2)} / 5.00`;
+    if (statPrime) statPrime.textContent = profile.prime_time || "Не указан";
+
+    // Переключение режима: свой профиль (с вкладками) vs чужой профиль (только дисциплины + оценка)
+    const tabsBar = document.getElementById("profileTabs");
+    if (tabsBar) tabsBar.style.display = isOwn ? "flex" : "none";
+
+    document.getElementById("publicProfileActions").style.display = isOwn ? "none" : "block";
     document.getElementById("backToMyProfileBtn").style.display = isOwn ? "none" : "inline-flex";
-    document.getElementById("editProfileSection").style.display = isOwn ? "block" : "none";
     document.getElementById("addDisciplineForm").style.display = isOwn ? "grid" : "none";
-    document.getElementById("teammatesRateSection").style.display = isOwn ? "block" : "none";
     document.getElementById("ratePublicProfileCard").style.display = isOwn ? "none" : "block";
 
+    if (isOwn) {
+      switchProfileTab(state.activeTab || "edit");
+    } else {
+      document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
+        panel.classList.toggle("is-active", panel.dataset.tabPanel === "disciplines");
+      });
+    }
+
     document.getElementById("profilePageTitle").textContent = isOwn
-      ? "👤 Личный кабинет и Trust Factor"
-      : `👤 Профиль игрока: ${profile.nickname}`;
+      ? "ЛИЧНЫЙ КАБИНЕТ"
+      : `ПРОФИЛЬ: ${profile.nickname}`;
   }
 
   function fillEditForm(profile) {
@@ -259,7 +287,7 @@
     const form = document.getElementById("profileEditForm");
     if (window.MPStorage?.bindFormDraft && form) {
       if (state.draftController?.unbind) state.draftController.unbind();
-      state.draftController = window.MPStorage.bindFormDraft(`profile_user_${profile.id}`, form);
+      state.draftController = window.MPStorage.bindFormDraft(form, `profile_user_${profile.id}`);
     }
   }
 
@@ -267,17 +295,17 @@
     const box = document.getElementById("profileDisciplinesList");
     const list = profile.disciplines || [];
     if (!list.length) {
-      box.innerHTML = '<p class="text-sm text-muted">Дисциплины ещё не добавлены.</p>';
+      box.innerHTML = '<p class="text-sm text-muted" style="margin:0 0 12px;">Дисциплины ещё не добавлены.</p>';
       return;
     }
     box.innerHTML = list.map((d) => `
       <div class="disc-chip-row">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <span class="badge ${d.category === "it" ? "badge--it" : "badge--esports"}">${esc(d.discipline_name)}</span>
-          <strong>${esc(d.role_name || "Любая роль")}</strong>
-          <span class="text-xs text-secondary">• ${esc(d.rank_name || "Без ранга")}</span>
+          <strong style="color:#fff;">${esc(d.role_name || "Любая роль")}</strong>
+          <span class="text-xs text-dim">• ${esc(d.rank_name || "Без ранга")}</span>
         </div>
-        ${isOwn ? `<button type="button" class="btn btn--ghost btn--xs" data-del-disc="${d.discipline_id}">✕ Удалить</button>` : ""}
+        ${isOwn ? `<button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-disc="${d.discipline_id}">✕ УДАЛИТЬ</button>` : ""}
       </div>
     `).join("");
 
@@ -329,18 +357,21 @@
     fill.style.width = `${pct}%`;
     fill.className = `trust-meter__fill trust-meter__fill--${level}`;
 
+    const total = ratingsData.total || 0;
     document.getElementById("trustCardSummary").textContent =
-      `${trustLabel(score)}. Всего отзывов: ${ratingsData.total || 0}.`;
+      `${trustLabel(score)}. Всего отзывов: ${total}.`;
+
+    const statReviews = document.getElementById("statReviews");
+    if (statReviews) statReviews.textContent = String(total);
 
     const dist = ratingsData.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-    const total = ratingsData.total || 0;
     document.getElementById("trustDistribution").innerHTML = [5, 4, 3, 2, 1].map((star) => {
       const count = dist[star] || 0;
       const w = total ? Math.round((count / total) * 100) : 0;
       return `
         <div class="dist-row">
           <span>${star} ★</span>
-          <div class="dist-bar"><div class="dist-bar__fill" style="width:${w}%"></div></div>
+          <div class="dist-bar"><div class="dist-bar__fill dist-bar__fill--${star}" style="width:${w}%"></div></div>
           <span>${count}</span>
         </div>
       `;
@@ -349,17 +380,17 @@
     document.getElementById("reviewsCount").textContent = String(total);
     const revBox = document.getElementById("reviewsList");
     if (!ratingsData.ratings?.length) {
-      revBox.innerHTML = '<p class="text-sm text-muted">Пока нет отзывов от тиммейтов.</p>';
+      revBox.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Пока нет отзывов от тиммейтов.</p>';
       return;
     }
 
     revBox.innerHTML = ratingsData.ratings.map((r) => `
       <div class="review-item">
         <div class="review-item__top">
-          <strong>${esc(r.from_nickname)}</strong>
+          <strong style="color:#fff;">${esc(r.from_nickname)}</strong>
           <span class="trust-badge trust-badge--${trustClass(r.score)}">★ ${r.score}</span>
         </div>
-        <p class="text-sm text-secondary" style="margin:0 0 6px;">${esc(r.comment || "Без комментария")}</p>
+        <p class="text-sm text-dim" style="margin:0 0 6px;">${esc(r.comment || "Без комментария")}</p>
         <div class="text-xs text-muted">${new Date(r.created_at).toLocaleDateString("ru-RU")}</div>
       </div>
     `).join("");
@@ -370,25 +401,31 @@
     try {
       const { teammates } = await window.MPApi.getMyTeammates();
       if (!teammates?.length) {
-        box.innerHTML = '<p class="text-sm text-muted">Пока нет взаимных мэтчей или тиммейтов. Поставьте лайки в ленте свайпов!</p>';
+        box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Пока нет взаимных мэтчей или тиммейтов. Поставьте лайки в ленте свайпов!</p>';
         return;
       }
-      box.innerHTML = teammates.map((t) => `
-        <div class="disc-chip-row">
-          <div>
-            <strong>${esc(t.nickname)}</strong>
-            <span class="trust-badge trust-badge--${trustClass(t.trust_score)}" style="margin-left:6px;">★ ${Number(t.trust_score).toFixed(2)}</span>
-            <div class="text-xs text-muted" style="margin-top:3px;">
-              ${t.my_score ? `Ваша оценка: ${t.my_score} ★ (${esc(t.my_comment || "без комментария")})` : "Вы ещё не оценивали этого игрока"}
+      box.innerHTML = teammates.map((t) => {
+        const initials = esc((t.nickname || "MP").slice(0, 2).toUpperCase());
+        return `
+          <div class="disc-chip-row">
+            <div class="teammate-info">
+              <div class="teammate-avatar">${initials}</div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                  <strong style="color:#fff;">${esc(t.nickname)}</strong>
+                  <span class="trust-badge trust-badge--${trustClass(t.trust_score)}">★ ${Number(t.trust_score).toFixed(2)}</span>
+                </div>
+                <div class="text-xs text-muted" style="margin-top:4px;">
+                  ${t.my_score ? `Ваша оценка: ${t.my_score} ★ (${esc(t.my_comment || "без комментария")})` : "Вы ещё не оценивали этого игрока"}
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="btn-group">
-            <button type="button" class="btn btn--secondary btn--xs" data-inspect-user="${t.id}">
-              ⭐ Оценить / Профиль
+            <button type="button" class="arcade-btn-gold arcade-btn--xs" data-inspect-user="${t.id}">
+              ★ ОЦЕНИТЬ / ПРОФИЛЬ
             </button>
           </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
 
       box.querySelectorAll("[data-inspect-user]").forEach((btn) => {
         btn.addEventListener("click", () => {
@@ -401,7 +438,7 @@
         });
       });
     } catch (_) {
-      box.innerHTML = '<p class="text-sm text-muted">Войдите в аккаунт, чтобы оценивать тиммейтов.</p>';
+      box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Войдите в аккаунт, чтобы оценивать тиммейтов.</p>';
     }
   }
 
@@ -436,6 +473,25 @@
   }
 
   function bindProfileEvents() {
+    document.querySelectorAll("[data-profile-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => switchProfileTab(btn.dataset.profileTab));
+    });
+
+    document.getElementById("profAvatarUrl")?.addEventListener("input", (e) => {
+      const nick = document.getElementById("profNickname")?.value || state.currentProfile?.nickname || "MP";
+      renderAvatar(e.target.value.trim(), nick);
+    });
+
+    document.getElementById("randomAvatarBtn")?.addEventListener("click", () => {
+      const seed = "MP_" + Math.random().toString(36).slice(2, 8);
+      const url = `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(seed)}`;
+      const input = document.getElementById("profAvatarUrl");
+      if (input) {
+        input.value = url;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    });
+
     document.getElementById("inspectProfileSelect")?.addEventListener("change", (e) => {
       state.viewingUserId = e.target.value === "me" ? null : Number(e.target.value);
       loadAll();
