@@ -3,45 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatchPoint — Профиль и Trust Factor</title>
+  <title>MatchPoint — Профиль игрока</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/arcade.css">
   <style>
-    /* --- Hero карточка профиля --- */
-    .profile-hero-card {
-      position: relative;
-      padding: 22px;
-      margin-bottom: 20px;
-      background: linear-gradient(135deg, rgba(36, 32, 56, 0.96) 0%, rgba(24, 21, 36, 0.98) 100%);
-      border: 3px solid var(--accent-gold);
-      box-shadow: 6px 6px 0px var(--shadow-hard);
+    /* --- Верхняя панель выбора профиля (компактная) --- */
+    .profile-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
     }
 
-    .profile-hero {
+    .profile-toolbar__crumbs {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.56rem;
+      color: var(--text-dim);
+      letter-spacing: 0.04em;
+    }
+
+    /* --- Главная карточка профиля с обложкой (как Steam / Discord / Faceit) --- */
+    .profile-cover-card {
+      background: var(--bg-panel);
+      border: 3px solid var(--border-pixel);
+      box-shadow: 6px 6px 0px var(--shadow-hard);
+      margin-bottom: 22px;
+      overflow: hidden;
+    }
+
+    .profile-banner {
+      position: relative;
+      height: 150px;
+      background:
+        radial-gradient(circle at 18% 35%, rgba(6, 214, 160, 0.28) 0%, transparent 45%),
+        radial-gradient(circle at 82% 30%, rgba(168, 85, 247, 0.34) 0%, transparent 48%),
+        radial-gradient(circle at 55% 85%, rgba(76, 201, 240, 0.22) 0%, transparent 45%),
+        linear-gradient(135deg, #1b1630 0%, #2a1f4a 55%, #162436 100%);
+      border-bottom: 3px solid var(--border-dark);
+      padding: 16px 20px;
       display: flex;
+      justify-content: space-between;
       align-items: flex-start;
+    }
+
+    .profile-banner__tag {
+      padding: 5px 10px;
+      background: rgba(19, 17, 28, 0.78);
+      border: 2px solid var(--border-bright);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.48rem;
+      color: var(--accent-gold);
+    }
+
+    .profile-banner__actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .profile-header-body {
+      padding: 0 24px 22px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
       gap: 20px;
       flex-wrap: wrap;
     }
 
-    .profile-avatar-wrap {
+    .profile-identity-block {
+      display: flex;
+      align-items: flex-end;
+      gap: 20px;
+      flex-wrap: wrap;
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .profile-avatar-overlap {
       position: relative;
+      margin-top: -58px;
       flex-shrink: 0;
     }
 
     .profile-avatar-lg {
-      width: 96px;
-      height: 96px;
+      width: 116px;
+      height: 116px;
       background: var(--bg-void);
-      border: 3px solid var(--accent-gold);
-      box-shadow: 4px 4px 0px var(--shadow-hard);
+      border: 4px solid var(--accent-gold);
+      box-shadow: 5px 5px 0px var(--shadow-hard);
       display: flex;
       align-items: center;
       justify-content: center;
       font-family: 'Press Start 2P', monospace;
-      font-size: 1.35rem;
+      font-size: 1.55rem;
       color: var(--accent-gold);
       overflow: hidden;
     }
@@ -53,12 +111,26 @@
       image-rendering: pixelated;
     }
 
-    .profile-meta {
-      flex: 1;
-      min-width: 240px;
+    .profile-status-dot {
+      position: absolute;
+      right: -4px;
+      bottom: -4px;
+      width: 22px;
+      height: 22px;
+      border: 3px solid var(--bg-panel);
+      background: var(--accent-mint);
     }
 
-    .profile-title-row {
+    .profile-status-dot--muted { background: var(--accent-gold); }
+    .profile-status-dot--banned { background: var(--accent-coral); }
+
+    .profile-name-block {
+      padding-top: 14px;
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .profile-name-row {
       display: flex;
       align-items: center;
       gap: 10px;
@@ -67,152 +139,333 @@
 
     .profile-nickname {
       margin: 0;
-      font-size: 1.45rem;
+      font-size: 1.6rem;
       font-weight: 800;
-      color: #fff;
-      letter-spacing: 0.01em;
+      color: #ffffff;
+      line-height: 1.15;
     }
 
-    .profile-bio-text {
-      margin: 10px 0 0;
-      font-size: 0.88rem;
+    .profile-subline {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
       color: var(--text-dim);
-      max-width: 640px;
-      line-height: 1.55;
     }
 
-    .profile-badges {
+    .profile-links-row {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       margin-top: 12px;
-      align-items: center;
     }
 
     .ext-link-pill {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      padding: 6px 10px;
-      background: #2A253D;
+      padding: 6px 11px;
+      background: var(--bg-inset);
       border: 2px solid var(--border-bright);
       color: var(--accent-cyan);
       text-decoration: none;
       font-family: 'Press Start 2P', monospace;
-      font-size: 0.5rem;
-      box-shadow: 0px 2px 0px var(--shadow-hard);
+      font-size: 0.48rem;
+      box-shadow: 2px 2px 0px var(--shadow-hard);
       transition: transform 0.1s ease, border-color 0.12s ease, color 0.12s ease;
     }
 
     a.ext-link-pill:hover {
       border-color: var(--accent-gold);
       color: var(--accent-gold);
-      transform: translateY(-1px);
+      transform: translateY(-2px);
     }
 
-    .profile-hero-trust {
-      min-width: 215px;
-      padding: 14px 16px;
-      background: var(--bg-inset);
-      border: 2px solid var(--border-pixel);
-      box-shadow: inset 2px 2px 0px #0B0A12;
+    .profile-trust-pill {
       display: flex;
       flex-direction: column;
       align-items: flex-end;
-      gap: 8px;
+      gap: 6px;
+      padding-top: 12px;
     }
 
-    /* --- Мини-статистика под Hero --- */
-    .profile-stats-strip {
+    /* --- Двухколоночная сетка контента профиля --- */
+    .profile-grid {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: minmax(0, 1.85fr) minmax(290px, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .profile-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    /* --- Блок "О себе" и контакты --- */
+    .about-card {
+      background: var(--bg-panel);
+      border: 2px solid var(--border-pixel);
+      box-shadow: 4px 4px 0px var(--shadow-hard);
+      padding: 20px;
+    }
+
+    .section-kicker {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.6rem;
+      color: var(--accent-gold);
+      margin: 0 0 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      margin-top: 18px;
-      padding-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .about-bio {
+      margin: 0;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: var(--text-main);
+    }
+
+    .contacts-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 14px;
       border-top: 2px solid var(--border-dark);
     }
 
-    .profile-stat-tile {
-      padding: 10px 12px;
+    .contact-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 12px;
       background: var(--bg-inset);
       border: 2px solid var(--border-dark);
+      color: var(--text-main);
+      font-size: 0.8rem;
+      cursor: pointer;
+    }
+
+    .contact-chip:hover {
+      border-color: var(--accent-mint);
+    }
+
+    /* --- Витрина дисциплин (карточки игр/направлений, НЕ таблица) --- */
+    .disc-showcase {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 14px;
+    }
+
+    .disc-card {
+      position: relative;
+      padding: 16px;
+      background: linear-gradient(160deg, var(--bg-card) 0%, var(--bg-inset) 100%);
+      border: 2px solid var(--border-pixel);
+      border-top: 4px solid var(--accent-mint);
+      box-shadow: 3px 3px 0px var(--shadow-hard);
       display: flex;
       flex-direction: column;
-      gap: 4px;
-    }
-
-    .profile-stat-tile__label {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.46rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-    }
-
-    .profile-stat-tile__value {
-      font-size: 0.92rem;
-      font-weight: 700;
-      color: var(--text-main);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* --- Вкладки рабочего пространства --- */
-    .profile-tabs {
-      display: flex;
-      flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 16px;
     }
 
-    .profile-tab-btn {
-      padding: 10px 14px;
-      background: var(--bg-panel);
-      border: 2px solid var(--border-pixel);
-      color: var(--text-dim);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.54rem;
+    .disc-card--it {
+      border-top-color: var(--accent-violet);
+    }
+
+    .disc-card__top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .disc-card__role {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .disc-card__rank {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--accent-cyan);
+    }
+
+    .disc-card__del {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
       cursor: pointer;
-      box-shadow: 0px 3px 0px var(--shadow-hard);
-      transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+      font-size: 0.8rem;
+      padding: 2px 6px;
     }
 
-    .profile-tab-btn:hover {
-      border-color: var(--accent-gold);
-      color: #fff;
+    .disc-card__del:hover {
+      color: var(--accent-coral);
+      border-color: var(--accent-coral);
     }
 
-    .profile-tab-btn.is-active {
-      background: #2D2647;
-      border-color: var(--accent-mint);
-      color: var(--accent-mint);
-      box-shadow: 0px 3px 0px #04684D;
+    .disc-add-drawer {
+      margin-top: 16px;
+      padding: 14px;
+      background: var(--bg-inset);
+      border: 2px dashed var(--border-bright);
     }
 
-    .profile-tab-panel {
-      display: none;
+    .disc-add-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+      gap: 10px;
+      align-items: end;
     }
 
-    .profile-tab-panel.is-active {
+    /* --- Лента отзывов (как комментарии в профиле) --- */
+    .review-card {
+      padding: 14px 16px;
+      background: var(--bg-inset);
+      border: 2px solid var(--border-dark);
+      border-left: 4px solid var(--accent-mint);
+      margin-bottom: 12px;
+    }
+
+    .review-card--mid { border-left-color: var(--accent-gold); }
+    .review-card--low { border-left-color: var(--accent-coral); }
+
+    .review-card__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .review-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mini-avatar {
+      width: 32px;
+      height: 32px;
+      background: var(--bg-void);
+      border: 2px solid var(--border-bright);
+      color: var(--accent-cyan);
+      font-family: 'Press Start 2P', monospace;
+      font-size: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* --- Правая колонка: Trust Factor и Отряд --- */
+    .trust-big-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .trust-score-box {
+      min-width: 88px;
+      padding: 12px 10px;
+      background: var(--bg-void);
+      border: 3px solid var(--accent-mint);
+      box-shadow: 3px 3px 0px var(--shadow-hard);
+      text-align: center;
+    }
+
+    .trust-score-box--mid { border-color: var(--accent-gold); }
+    .trust-score-box--low { border-color: var(--accent-coral); }
+
+    .trust-score-box__num {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 1.05rem;
+      color: #ffffff;
       display: block;
     }
 
-    /* --- Группы полей формы --- */
-    .form-fieldset {
-      padding: 16px;
-      margin-bottom: 16px;
-      background: var(--bg-inset);
-      border: 2px solid var(--border-dark);
+    .trust-score-box__max {
+      font-size: 0.7rem;
+      color: var(--text-muted);
     }
 
-    .form-fieldset__title {
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.54rem;
-      color: var(--accent-gold);
-      margin: 0 0 14px;
-      display: flex;
+    .trust-meter {
+      height: 14px;
+      background: var(--bg-void);
+      border: 2px solid var(--border-pixel);
+      margin: 10px 0 14px;
+      padding: 2px;
+    }
+
+    .trust-meter__fill { height: 100%; transition: width 0.25s steps(10); }
+    .trust-meter__fill--high { background: var(--accent-mint); }
+    .trust-meter__fill--mid  { background: var(--accent-gold); }
+    .trust-meter__fill--low  { background: var(--accent-coral); }
+
+    .dist-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 24px;
       align-items: center;
       gap: 8px;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .dist-bar { height: 8px; background: var(--bg-void); border: 1px solid var(--border-dark); }
+    .dist-bar__fill { height: 100%; background: var(--accent-cyan); }
+    .dist-bar__fill--5 { background: var(--accent-mint); }
+    .dist-bar__fill--4 { background: var(--accent-cyan); }
+    .dist-bar__fill--3 { background: var(--accent-gold); }
+    .dist-bar__fill--2, .dist-bar__fill--1 { background: var(--accent-coral); }
+
+    /* Карточка тиммейта в сайдбаре */
+    .squad-member {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 12px;
+      background: var(--bg-inset);
+      border: 2px solid var(--border-dark);
+      margin-bottom: 8px;
+    }
+
+    .squad-member:last-child { margin-bottom: 0; }
+
+    .squad-member__left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .star-picker { display: flex; gap: 6px; margin-bottom: 10px; }
+    .star-btn {
+      width: 40px; height: 36px; background: #2A253D; border: 2px solid var(--border-bright);
+      color: var(--text-dim); font-family: 'Press Start 2P', monospace; font-size: 0.62rem;
+      cursor: pointer; box-shadow: 0px 3px 0px var(--shadow-hard);
+    }
+    .star-btn.is-active, .star-btn:hover { border-color: var(--accent-gold); color: var(--accent-gold); background: #362F52; }
+
+    /* Модалка редактирования профиля */
+    .modal--wide {
+      max-width: 660px;
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .avatar-input-row {
@@ -228,162 +481,24 @@
       color: var(--accent-coral);
       padding: 10px 12px;
       font-size: 0.78rem;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
-    /* --- Дисциплины и роли --- */
-    .disc-chip-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      background: var(--bg-inset);
-      border: 2px solid var(--border-dark);
-      box-shadow: inset 2px 2px 0px #0B0A12;
-      flex-wrap: wrap;
-    }
+    .right-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-    .disc-add-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-      gap: 10px;
-      align-items: end;
-      padding-top: 14px;
-      border-top: 2px solid var(--border-dark);
-    }
-
-    /* --- Trust Factor и отзывы --- */
-    .trust-meter {
-      height: 16px;
-      background: var(--bg-void);
-      border: 2px solid var(--border-pixel);
-      margin: 12px 0;
-      padding: 2px;
-    }
-
-    .trust-meter__fill {
-      height: 100%;
-      transition: width 0.25s steps(10);
-    }
-
-    .trust-meter__fill--high { background: var(--accent-mint); }
-    .trust-meter__fill--mid  { background: var(--accent-gold); }
-    .trust-meter__fill--low  { background: var(--accent-coral); }
-
-    .dist-row {
-      display: grid;
-      grid-template-columns: 44px 1fr 28px;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      margin-bottom: 7px;
-    }
-
-    .dist-bar {
-      height: 10px;
-      background: var(--bg-void);
-      border: 1px solid var(--border-dark);
-    }
-
-    .dist-bar__fill { height: 100%; background: var(--accent-cyan); }
-    .dist-bar__fill--5 { background: var(--accent-mint); }
-    .dist-bar__fill--4 { background: var(--accent-cyan); }
-    .dist-bar__fill--3 { background: var(--accent-gold); }
-    .dist-bar__fill--2, .dist-bar__fill--1 { background: var(--accent-coral); }
-
-    .review-item {
-      padding: 12px 14px;
-      margin-bottom: 10px;
-      background: var(--bg-inset);
-      border: 2px solid var(--border-dark);
-    }
-
-    .review-item__top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .star-picker {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 10px;
-    }
-
-    .star-btn {
-      width: 42px;
-      height: 38px;
-      background: #2A253D;
-      border: 2px solid var(--border-bright);
-      color: var(--text-dim);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.65rem;
-      cursor: pointer;
-      box-shadow: 0px 3px 0px var(--shadow-hard);
-    }
-
-    .star-btn.is-active,
-    .star-btn:hover {
-      border-color: var(--accent-gold);
-      color: var(--accent-gold);
-      background: #362F52;
-    }
-
-    .teammate-info {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 200px;
-    }
-
-    .teammate-avatar {
-      width: 38px;
-      height: 38px;
-      background: var(--bg-void);
-      border: 2px solid var(--border-bright);
-      color: var(--accent-cyan);
-      font-family: 'Press Start 2P', monospace;
-      font-size: 0.58rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-    }
-
-    .right-tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    @media (max-width: 900px) {
-      .profile-stats-strip {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-      .disc-add-grid {
-        grid-template-columns: 1fr 1fr;
-      }
-      .profile-hero-trust {
-        width: 100%;
-        align-items: flex-start;
-      }
+    @media (max-width: 960px) {
+      .profile-grid { grid-template-columns: 1fr; }
+      .disc-add-grid { grid-template-columns: 1fr 1fr; }
     }
 
     @media (max-width: 600px) {
-      .profile-hero-card {
-        padding: 16px;
-      }
-      .disc-add-grid {
-        grid-template-columns: 1fr;
-      }
-      .avatar-input-row {
-        grid-template-columns: 1fr;
-      }
+      .profile-banner { height: 110px; }
+      .profile-header-body { padding: 0 16px 18px; }
+      .profile-avatar-lg { width: 88px; height: 88px; font-size: 1.2rem; }
+      .profile-avatar-overlap { margin-top: -44px; }
+      .profile-trust-pill { align-items: flex-start; }
+      .disc-add-grid { grid-template-columns: 1fr; }
+      .avatar-input-row { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -466,19 +581,11 @@
   <main class="arcade-main">
     <div class="arcade-container">
 
-      <div class="arcade-page-head">
-        <div>
-          <div class="font-pixel text-cyan" style="font-size:0.54rem;margin-bottom:6px;">
-            CHARACTER SHEET // ПРОФИЛЬ И РЕПУТАЦИЯ
-          </div>
-          <h1 class="arcade-page-title" id="profilePageTitle">ЛИЧНЫЙ КАБИНЕТ</h1>
-          <p class="arcade-page-sub" id="profilePageSubtitle">
-            Управляйте анкетой, дисциплинами, контактами и репутацией Trust Factor.
-          </p>
-        </div>
-
+      <!-- Компактная полоса переключения просматриваемого профиля -->
+      <div class="profile-toolbar">
+        <div class="profile-toolbar__crumbs" id="profilePageTitle">ПРОФИЛЬ ИГРОКА</div>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <select class="arcade-select arcade-select--compact" id="inspectProfileSelect" aria-label="Просмотр профиля игрока">
+          <select class="arcade-select arcade-select--compact" id="inspectProfileSelect" aria-label="Посмотреть другой профиль">
             <option value="me">Мой профиль</option>
             <option value="9">ColdFlick (AWPer • 4.95)</option>
             <option value="11">PixelCraft (Frontend • 4.75)</option>
@@ -490,216 +597,126 @@
         </div>
       </div>
 
-      <!-- HERO КАРТОЧКА -->
-      <section class="profile-hero-card arena-scanlines">
-        <div class="profile-hero">
-          <div class="profile-avatar-wrap">
-            <div class="profile-avatar-lg" id="heroAvatar">MP</div>
-          </div>
-
-          <div class="profile-meta">
-            <div class="profile-title-row">
-              <h2 class="profile-nickname" id="heroNickname">Загрузка...</h2>
-              <span class="badge badge--team" id="heroRoleBadge">player</span>
-              <span class="status-pill status-pill--active" id="heroStatusPill">active</span>
-              <span class="badge badge--it" id="heroVerifiedBadge" style="display:none;">✓ VERIFIED ORG</span>
-            </div>
-            <p class="profile-bio-text" id="heroBio">—</p>
-            <div class="profile-badges" id="heroExternalLinks"></div>
-          </div>
-
-          <div class="profile-hero-trust">
-            <span class="trust-badge trust-badge--high" id="heroTrustBadge" style="font-size:0.84rem;padding:8px 14px;">★ 5.00</span>
-            <div class="text-xs text-dim" id="heroTrustMeta">Высокий уровень доверия</div>
-            <div id="publicProfileActions" style="margin-top:4px;display:none;">
-              <button type="button" class="arcade-btn-coral arcade-btn--xs" id="openReportProfileBtn">[!] ПОЖАЛОВАТЬСЯ</button>
-            </div>
+      <!-- ОБЛОЖКА И ШАПКА ПРОФИЛЯ -->
+      <section class="profile-cover-card">
+        <div class="profile-banner arena-scanlines">
+          <span class="profile-banner__tag" id="heroBannerTag">MATCHPOINT PLAYER</span>
+          <div class="profile-banner__actions">
+            <button type="button" class="arcade-btn-gold arcade-btn--xs" id="openEditProfileBtn">✎ РЕДАКТИРОВАТЬ</button>
+            <button type="button" class="arcade-btn-coral arcade-btn--xs" id="openReportProfileBtn" style="display:none;">[!] ПОЖАЛОВАТЬСЯ</button>
           </div>
         </div>
 
-        <div class="profile-stats-strip">
-          <div class="profile-stat-tile">
-            <span class="profile-stat-tile__label">Дисциплины</span>
-            <span class="profile-stat-tile__value" id="statDisciplines">0</span>
+        <div class="profile-header-body">
+          <div class="profile-identity-block">
+            <div class="profile-avatar-overlap">
+              <div class="profile-avatar-lg" id="heroAvatar">MP</div>
+              <span class="profile-status-dot" id="heroStatusDot" title="Статус"></span>
+            </div>
+
+            <div class="profile-name-block">
+              <div class="profile-name-row">
+                <h1 class="profile-nickname" id="heroNickname">Загрузка...</h1>
+                <span class="badge badge--team" id="heroRoleBadge">player</span>
+                <span class="status-pill status-pill--active" id="heroStatusPill">active</span>
+                <span class="badge badge--it" id="heroVerifiedBadge" style="display:none;">✓ VERIFIED ORG</span>
+              </div>
+
+              <div class="profile-subline">
+                <span id="heroPrimeTime">🕒 Прайм-тайм не указан</span>
+                <span id="heroDiscCount">🎮 0 дисциплин</span>
+                <span id="heroReviewsInline">💬 0 отзывов</span>
+              </div>
+
+              <div class="profile-links-row" id="heroExternalLinks"></div>
+            </div>
           </div>
-          <div class="profile-stat-tile">
-            <span class="profile-stat-tile__label">Отзывы</span>
-            <span class="profile-stat-tile__value" id="statReviews">0</span>
-          </div>
-          <div class="profile-stat-tile">
-            <span class="profile-stat-tile__label">Trust Factor</span>
-            <span class="profile-stat-tile__value" id="statTrust">5.00 / 5.00</span>
-          </div>
-          <div class="profile-stat-tile">
-            <span class="profile-stat-tile__label">Прайм-тайм</span>
-            <span class="profile-stat-tile__value" id="statPrimeTime">Не указан</span>
+
+          <div class="profile-trust-pill">
+            <span class="trust-badge trust-badge--high" id="heroTrustBadge" style="font-size:0.86rem;padding:8px 14px;">★ 5.00</span>
+            <span class="text-xs text-dim" id="heroTrustMeta">Высокий уровень доверия</span>
           </div>
         </div>
       </section>
 
-      <!-- ОСНОВНАЯ СЕТКА -->
-      <div class="split-layout">
-        <div>
-          <!-- Вкладки для своего профиля -->
-          <div class="profile-tabs" id="profileTabs" role="tablist">
-            <button type="button" class="profile-tab-btn is-active" data-profile-tab="edit" role="tab" aria-selected="true">
-              ✎ АНКЕТА
-            </button>
-            <button type="button" class="profile-tab-btn" data-profile-tab="disciplines" role="tab" aria-selected="false">
-              🎮 ДИСЦИПЛИНЫ
-            </button>
-            <button type="button" class="profile-tab-btn" data-profile-tab="teammates" role="tab" aria-selected="false">
-              🤝 ТИММЕЙТЫ
-            </button>
-          </div>
+      <!-- ОСНОВНОЕ ТЕЛО ПРОФИЛЯ -->
+      <div class="profile-grid">
 
-          <!-- Вкладка 1: Редактирование анкеты -->
-          <section class="pixel-box profile-tab-panel is-active" id="editProfileSection" data-tab-panel="edit">
-            <div class="arcade-section-head">
-              <div>
-                <h2 class="arcade-section-title">✎ РЕДАКТИРОВАНИЕ АНКЕТЫ</h2>
-                <div class="text-xs text-muted" style="margin-top:4px;">Несохранённые правки автоматически хранятся в черновике</div>
-              </div>
-              <button type="button" class="arcade-btn arcade-btn--xs text-coral" id="clearProfileDraftBtn">СБРОСИТЬ</button>
-            </div>
-
-            <form id="profileEditForm" novalidate>
-              <div class="form-fieldset">
-                <h3 class="form-fieldset__title">▶ ОСНОВНЫЕ ДАННЫЕ</h3>
-                <div class="arcade-form-row">
-                  <div class="arcade-form-group">
-                    <label class="arcade-label" for="profNickname">НИКНЕЙМ *</label>
-                    <input class="arcade-input" id="profNickname" name="nickname" required minlength="2" maxlength="100" placeholder="ShadowStep">
-                  </div>
-                  <div class="arcade-form-group">
-                    <label class="arcade-label" for="profPrimeTime">ПРАЙМ-ТАЙМ</label>
-                    <input class="arcade-input" id="profPrimeTime" name="prime_time" placeholder="20:00–01:00">
-                  </div>
-                </div>
-
-                <div class="arcade-form-group">
-                  <label class="arcade-label" for="profAvatarUrl">ССЫЛКА НА АВАТАР</label>
-                  <div class="avatar-input-row">
-                    <input class="arcade-input" id="profAvatarUrl" name="avatar_url" type="url" placeholder="https://api.dicebear.com/9.x/identicon/svg?seed=Nick">
-                    <button type="button" class="arcade-btn arcade-btn--xs" id="randomAvatarBtn" style="height:40px;">🎲 СЛУЧАЙНЫЙ</button>
-                  </div>
-                </div>
-
-                <div class="arcade-form-group" style="margin-bottom:0;">
-                  <label class="arcade-label" for="profBio">О СЕБЕ (ИГРЫ, СТЕК, ЦЕЛИ)</label>
-                  <textarea class="arcade-textarea" id="profBio" name="bio" rows="3" placeholder="Опишите стиль игры, стек технологий и кого ищете в команду..."></textarea>
-                </div>
-              </div>
-
-              <div class="form-fieldset">
-                <h3 class="form-fieldset__title">💬 КОНТАКТЫ (РАСКРЫВАЮТСЯ ПОСЛЕ MATCH)</h3>
-                <div class="arcade-form-row">
-                  <div class="arcade-form-group" style="margin-bottom:0;">
-                    <label class="arcade-label" for="profDiscord">DISCORD</label>
-                    <input class="arcade-input" id="profDiscord" name="discord" placeholder="nickname#0001">
-                  </div>
-                  <div class="arcade-form-group" style="margin-bottom:0;">
-                    <label class="arcade-label" for="profTelegram">TELEGRAM</label>
-                    <input class="arcade-input" id="profTelegram" name="telegram" placeholder="@username">
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-fieldset">
-                <h3 class="form-fieldset__title">🔗 ВНЕШНИЕ ПРОФИЛИ</h3>
-                <div class="arcade-form-row">
-                  <div class="arcade-form-group">
-                    <label class="arcade-label" for="profSteam">STEAM</label>
-                    <input class="arcade-input" id="profSteam" name="steam" type="url" placeholder="https://steamcommunity.com/id/...">
-                  </div>
-                  <div class="arcade-form-group">
-                    <label class="arcade-label" for="profFaceit">FACEIT</label>
-                    <input class="arcade-input" id="profFaceit" name="faceit" type="url" placeholder="https://www.faceit.com/en/players/...">
-                  </div>
-                </div>
-                <div class="arcade-form-row">
-                  <div class="arcade-form-group" style="margin-bottom:0;">
-                    <label class="arcade-label" for="profGithub">GITHUB</label>
-                    <input class="arcade-input" id="profGithub" name="github" type="url" placeholder="https://github.com/username">
-                  </div>
-                  <div class="arcade-form-group" style="margin-bottom:0;">
-                    <label class="arcade-label" for="profGitlab">GITLAB</label>
-                    <input class="arcade-input" id="profGitlab" name="gitlab" type="url" placeholder="https://gitlab.com/username">
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-error" id="profileFormError" style="display:none;"></div>
-
-              <div style="display:flex;justify-content:flex-end;align-items:center;gap:10px;">
-                <button type="submit" class="arcade-btn-mint" id="saveProfileBtn">💾 СОХРАНИТЬ ИЗМЕНЕНИЯ</button>
-              </div>
-            </form>
+        <!-- ЛЕВАЯ ОСНОВНАЯ КОЛОНКА -->
+        <div class="profile-col">
+          <!-- О себе + контакты -->
+          <section class="about-card">
+            <h2 class="section-kicker">
+              <span>▶ О СЕБЕ</span>
+            </h2>
+            <p class="about-bio" id="heroBio">Описание профиля пока не заполнено.</p>
+            <div class="contacts-strip" id="heroContactsStrip" style="display:none;"></div>
           </section>
 
-          <!-- Вкладка 2: Дисциплины и роли -->
-          <section class="pixel-box profile-tab-panel" id="disciplinesSection" data-tab-panel="disciplines">
-            <div class="arcade-section-head">
-              <div>
-                <h2 class="arcade-section-title">🎮 ДИСЦИПЛИНЫ, РОЛИ И РАНГИ</h2>
-                <div class="text-xs text-muted" style="margin-top:4px;">Укажите направления, чтобы попадать в нужные фильтры ленты свайпов</div>
-              </div>
+          <!-- Витрина дисциплин (карточками) -->
+          <section class="about-card">
+            <div class="section-kicker">
+              <span>🎮 ИГРЫ И НАПРАВЛЕНИЯ</span>
+              <button type="button" class="arcade-btn arcade-btn--xs" id="toggleAddDiscBtn">+ ДОБАВИТЬ</button>
             </div>
 
-            <div id="profileDisciplinesList" style="margin-bottom:14px;"></div>
+            <div class="disc-showcase" id="profileDisciplinesList"></div>
 
-            <form id="addDisciplineForm" class="disc-add-grid">
-              <div>
-                <label class="arcade-label" for="discSelect">ДИСЦИПЛИНА</label>
-                <select class="arcade-select" id="discSelect" required></select>
-              </div>
-              <div>
-                <label class="arcade-label" for="discRoleSelect">РОЛЬ</label>
-                <select class="arcade-select" id="discRoleSelect"></select>
-              </div>
-              <div>
-                <label class="arcade-label" for="discRankSelect">РАНГ / ГРЕЙД</label>
-                <select class="arcade-select" id="discRankSelect"></select>
-              </div>
-              <button type="submit" class="arcade-btn-gold" style="height:40px;white-space:nowrap;">+ ДОБАВИТЬ</button>
-            </form>
+            <div class="disc-add-drawer" id="addDisciplineDrawer" style="display:none;">
+              <form id="addDisciplineForm" class="disc-add-grid">
+                <div>
+                  <label class="arcade-label" for="discSelect">ДИСЦИПЛИНА</label>
+                  <select class="arcade-select" id="discSelect" required></select>
+                </div>
+                <div>
+                  <label class="arcade-label" for="discRoleSelect">РОЛЬ</label>
+                  <select class="arcade-select" id="discRoleSelect"></select>
+                </div>
+                <div>
+                  <label class="arcade-label" for="discRankSelect">РАНГ / ГРЕЙД</label>
+                  <select class="arcade-select" id="discRankSelect"></select>
+                </div>
+                <button type="submit" class="arcade-btn-mint" style="height:40px;white-space:nowrap;">СОХРАНИТЬ</button>
+              </form>
+            </div>
           </section>
 
-          <!-- Вкладка 3: Оценка тиммейтов -->
-          <section class="pixel-box profile-tab-panel" id="teammatesRateSection" data-tab-panel="teammates">
-            <div class="arcade-section-head">
-              <div>
-                <h2 class="arcade-section-title">🤝 ТИММЕЙТЫ И МЭТЧИ</h2>
-                <div class="text-xs text-muted" style="margin-top:4px;">Оставьте отзыв после совместной игры или хакатона</div>
-              </div>
-            </div>
-            <div id="teammatesList"></div>
+          <!-- Отзывы -->
+          <section class="about-card">
+            <h2 class="section-kicker">
+              <span>💬 ОТЗЫВЫ ИГРОКОВ (<span id="reviewsCount">0</span>)</span>
+            </h2>
+            <div id="reviewsList"></div>
           </section>
         </div>
 
-        <!-- ПРАВАЯ КОЛОНКА -->
-        <aside style="display:flex;flex-direction:column;gap:20px;">
-          <section class="pixel-box">
-            <div class="arcade-section-head">
-              <h2 class="arcade-section-title">♥ TRUST FACTOR</h2>
-              <span class="trust-badge trust-badge--high" id="trustCardScore">★ 5.00</span>
+        <!-- ПРАВАЯ КОЛОНКА (РЕПУТАЦИЯ + ТИММЕЙТЫ) -->
+        <aside class="profile-col">
+          <!-- Trust Factor -->
+          <section class="about-card">
+            <h2 class="section-kicker"><span>♥ TRUST FACTOR</span></h2>
+            <div class="trust-big-display">
+              <div class="trust-score-box" id="trustScoreBox">
+                <span class="trust-score-box__num" id="trustCardScore">5.00</span>
+                <span class="trust-score-box__max">из 5.00</span>
+              </div>
+              <div style="flex:1;">
+                <div class="text-sm" style="color:#fff;font-weight:700;" id="trustCardLabel">Высокий уровень доверия</div>
+                <div class="text-xs text-dim" style="margin-top:4px;" id="trustCardSummary">На основе оценок тиммейтов</div>
+              </div>
             </div>
             <div class="trust-meter">
               <div class="trust-meter__fill trust-meter__fill--high" id="trustMeterFill" style="width:100%;"></div>
             </div>
-            <p class="text-xs text-dim" id="trustCardSummary" style="margin:0 0 14px;">
-              Рассчитывается на основе оценок тиммейтов (1–5).
-            </p>
             <div id="trustDistribution"></div>
           </section>
 
+          <!-- Оценить чужого игрока -->
           <section class="pixel-box-gold" id="ratePublicProfileCard" style="display:none;">
-            <div class="arcade-section-head">
-              <h2 class="arcade-section-title text-gold">★ ОЦЕНИТЬ ИГРОКА</h2>
-            </div>
+            <h2 class="section-kicker"><span>★ ОЦЕНИТЬ ИГРОКА</span></h2>
             <form id="rateProfileForm">
               <div class="arcade-form-group">
-                <span class="arcade-label">ОЦЕНКА ПОРЯДОЧНОСТИ (1–5)</span>
+                <span class="arcade-label">ОЦЕНКА (1–5)</span>
                 <div class="star-picker" id="starPicker">
                   <button type="button" class="star-btn is-active" data-score="1">1</button>
                   <button type="button" class="star-btn is-active" data-score="2">2</button>
@@ -716,17 +733,94 @@
             </form>
           </section>
 
-          <section class="pixel-box">
-            <div class="arcade-section-head">
-              <h2 class="arcade-section-title">💬 ОТЗЫВЫ (<span id="reviewsCount">0</span>)</h2>
-            </div>
-            <div id="reviewsList"></div>
+          <!-- Тиммейты / Отряд (как список друзей) -->
+          <section class="about-card" id="teammatesRateSection">
+            <h2 class="section-kicker"><span>🤝 МОЙ ОТРЯД И МЭТЧИ</span></h2>
+            <div id="teammatesList"></div>
           </section>
         </aside>
       </div>
     </div>
   </main>
 
+  <!-- МОДАЛКА РЕДАКТИРОВАНИЯ ПРОФИЛЯ -->
+  <div class="modal-overlay" id="editProfileModal" role="dialog" aria-modal="true" aria-labelledby="editProfileModalTitle">
+    <div class="modal modal--wide">
+      <button type="button" class="arcade-btn arcade-btn--xs modal__close" data-close-modal="editProfileModal" aria-label="Закрыть">×</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;padding-right:36px;">
+        <h3 class="font-pixel text-gold" id="editProfileModalTitle" style="font-size:0.72rem;margin:0;">✎ РЕДАКТИРОВАНИЕ ПРОФИЛЯ</h3>
+        <button type="button" class="arcade-btn arcade-btn--xs text-coral" id="clearProfileDraftBtn">СБРОС</button>
+      </div>
+
+      <form id="profileEditForm" novalidate>
+        <div class="arcade-form-row">
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profNickname">НИКНЕЙМ *</label>
+            <input class="arcade-input" id="profNickname" name="nickname" required minlength="2" maxlength="100" placeholder="ShadowStep">
+          </div>
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profPrimeTime">ПРАЙМ-ТАЙМ</label>
+            <input class="arcade-input" id="profPrimeTime" name="prime_time" placeholder="20:00–01:00">
+          </div>
+        </div>
+
+        <div class="arcade-form-group">
+          <label class="arcade-label" for="profAvatarUrl">АВАТАР (URL)</label>
+          <div class="avatar-input-row">
+            <input class="arcade-input" id="profAvatarUrl" name="avatar_url" type="url" placeholder="https://api.dicebear.com/9.x/identicon/svg?seed=Nick">
+            <button type="button" class="arcade-btn arcade-btn--xs" id="randomAvatarBtn" style="height:40px;">🎲 СЛУЧАЙНЫЙ</button>
+          </div>
+        </div>
+
+        <div class="arcade-form-group">
+          <label class="arcade-label" for="profBio">О СЕБЕ</label>
+          <textarea class="arcade-textarea" id="profBio" name="bio" rows="3" placeholder="Опишите стиль игры, стек и цели..."></textarea>
+        </div>
+
+        <div class="arcade-form-row">
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profDiscord">DISCORD</label>
+            <input class="arcade-input" id="profDiscord" name="discord" placeholder="nickname#0001">
+          </div>
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profTelegram">TELEGRAM</label>
+            <input class="arcade-input" id="profTelegram" name="telegram" placeholder="@username">
+          </div>
+        </div>
+
+        <div class="arcade-form-row">
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profSteam">STEAM</label>
+            <input class="arcade-input" id="profSteam" name="steam" type="url" placeholder="https://steamcommunity.com/id/...">
+          </div>
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profFaceit">FACEIT</label>
+            <input class="arcade-input" id="profFaceit" name="faceit" type="url" placeholder="https://www.faceit.com/en/players/...">
+          </div>
+        </div>
+
+        <div class="arcade-form-row">
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profGithub">GITHUB</label>
+            <input class="arcade-input" id="profGithub" name="github" type="url" placeholder="https://github.com/username">
+          </div>
+          <div class="arcade-form-group">
+            <label class="arcade-label" for="profGitlab">GITLAB</label>
+            <input class="arcade-input" id="profGitlab" name="gitlab" type="url" placeholder="https://gitlab.com/username">
+          </div>
+        </div>
+
+        <div class="form-error" id="profileFormError" style="display:none;"></div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+          <button type="button" class="arcade-btn" data-close-modal="editProfileModal">ОТМЕНА</button>
+          <button type="submit" class="arcade-btn-mint" id="saveProfileBtn">💾 СОХРАНИТЬ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- МОДАЛКА ЖАЛОБЫ -->
   <div class="modal-overlay" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
     <div class="modal">
       <button type="button" class="arcade-btn arcade-btn--xs modal__close" data-close-modal="reportModal" aria-label="Закрыть">×</button>
@@ -735,13 +829,14 @@
       <form id="reportForm">
         <div class="arcade-form-group">
           <label class="arcade-label" for="reportReason">ПРИЧИНА РЕПОРТА *</label>
-          <textarea class="arcade-textarea" id="reportReason" rows="3" required minlength="5" placeholder="Опишите нарушение (токсичность, фейковый ранг, спам)..."></textarea>
+          <textarea class="arcade-textarea" id="reportReason" rows="3" required minlength="5" placeholder="Опишите нарушение..."></textarea>
         </div>
         <button type="submit" class="arcade-btn-coral arcade-btn--block">ОТПРАВИТЬ МОДЕРАТОРАМ</button>
       </form>
     </div>
   </div>
 
+  <!-- МОДАЛКА АВТОРИЗАЦИИ -->
   <div class="modal-overlay" id="authModal" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
     <div class="modal">
       <button type="button" class="arcade-btn arcade-btn--xs modal__close" data-close-modal="authModal" aria-label="Закрыть">×</button>

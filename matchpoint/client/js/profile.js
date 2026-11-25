@@ -1,5 +1,5 @@
 /* ==========================================================================
-   MatchPoint — Личный кабинет и Trust Factor (client/js/profile.js)
+   MatchPoint — Профиль игрока и Trust Factor (client/js/profile.js)
    ========================================================================== */
 
 (function () {
@@ -9,7 +9,6 @@
     catalog: [],
     currentProfile: null,
     viewingUserId: null, // null = собственный профиль
-    activeTab: "edit",
     selectedScore: 5,
     authMode: "login",
     draftController: null
@@ -68,6 +67,18 @@
     return "status-pill--banned";
   }
 
+  function roleLabel(role) {
+    const map = {
+      admin: "MATCHPOINT ADMIN",
+      moderator: "MATCHPOINT MODERATOR",
+      organizer: "EVENT ORGANIZER",
+      captain: "TEAM CAPTAIN",
+      player: "MATCHPOINT PLAYER",
+      guest: "GUEST PROFILE"
+    };
+    return map[role] || "MATCHPOINT PLAYER";
+  }
+
   function validateExternalLinkClient(key, raw) {
     const val = String(raw || "").trim();
     if (!val) return null;
@@ -87,18 +98,6 @@
       return `Поле ${key} должно ссылаться на ${rules[key][0]}`;
     }
     return null;
-  }
-
-  function switchProfileTab(tabName) {
-    state.activeTab = tabName;
-    document.querySelectorAll("[data-profile-tab]").forEach((btn) => {
-      const active = btn.dataset.profileTab === tabName;
-      btn.classList.toggle("is-active", active);
-      btn.setAttribute("aria-selected", String(active));
-    });
-    document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
-      panel.classList.toggle("is-active", panel.dataset.tabPanel === tabName);
-    });
   }
 
   function updateHeaderUI() {
@@ -211,65 +210,77 @@
 
     document.getElementById("heroNickname").textContent = profile.nickname || "Без имени";
     document.getElementById("heroRoleBadge").textContent = profile.role || "player";
+    document.getElementById("heroBannerTag").textContent = roleLabel(profile.role);
 
     const pill = document.getElementById("heroStatusPill");
     pill.textContent = profile.status || "active";
     pill.className = `status-pill ${statusPillClass(profile.status)}`;
 
-    const verifiedBadge = document.getElementById("heroVerifiedBadge");
-    verifiedBadge.style.display = profile.external_links?.verified_organizer ? "inline-flex" : "none";
+    const dot = document.getElementById("heroStatusDot");
+    if (dot) {
+      dot.className = "profile-status-dot" + (profile.status === "muted" ? " profile-status-dot--muted" : profile.status !== "active" ? " profile-status-dot--banned" : "");
+      dot.title = `Статус: ${profile.status || "active"}`;
+    }
 
-    document.getElementById("heroBio").textContent = profile.bio || "Описание профиля пока не заполнено.";
+    document.getElementById("heroVerifiedBadge").style.display = profile.external_links?.verified_organizer ? "inline-flex" : "none";
+    document.getElementById("heroBio").textContent = profile.bio || "Пользователь пока не добавил описание о себе.";
+    document.getElementById("heroPrimeTime").textContent = profile.prime_time ? `🕒 ${profile.prime_time}` : "🕒 Прайм-тайм не указан";
+    document.getElementById("heroDiscCount").textContent = `🎮 Дисциплин: ${(profile.disciplines || []).length}`;
 
+    // Внешние ссылки в шапке
     const linksBox = document.getElementById("heroExternalLinks");
     const linkLabels = { steam: "🎮 STEAM", faceit: "⚡ FACEIT", github: "💻 GITHUB", gitlab: "🦊 GITLAB" };
     const pills = [];
-    if (profile.prime_time) {
-      pills.push(`<span class="ext-link-pill">🕒 ${esc(profile.prime_time)}</span>`);
-    }
     Object.entries(linkLabels).forEach(([key, label]) => {
       const href = profile.external_links?.[key];
       if (href) {
         pills.push(`<a class="ext-link-pill" href="${esc(href)}" target="_blank" rel="noopener noreferrer">${label} ↗</a>`);
       }
     });
-    linksBox.innerHTML = pills.join("") || '<span class="text-xs text-muted">Внешние профили не указаны</span>';
+    linksBox.innerHTML = pills.join("");
 
+    // Контакты (Discord / Telegram) с копированием в клик
+    const contactsStrip = document.getElementById("heroContactsStrip");
+    const contacts = [];
+    if (profile.contacts?.discord) contacts.push({ label: "Discord", val: profile.contacts.discord });
+    if (profile.contacts?.telegram) contacts.push({ label: "Telegram", val: profile.contacts.telegram });
+    if (contacts.length) {
+      contactsStrip.style.display = "flex";
+      contactsStrip.innerHTML = contacts
+        .map((c) => `<button type="button" class="contact-chip" data-copy-contact="${esc(c.val)}" title="Нажмите, чтобы скопировать"><span class="text-dim">${esc(c.label)}:</span> <strong>${esc(c.val)}</strong> 📋</button>`)
+        .join("");
+      contactsStrip.querySelectorAll("[data-copy-contact]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          navigator.clipboard?.writeText(btn.dataset.copyContact).catch(() => {});
+          showToast(`Скопировано: ${btn.dataset.copyContact}`);
+        });
+      });
+    } else {
+      contactsStrip.style.display = "none";
+    }
+
+    // Trust badge в шапке
     const score = Number(profile.trust_score ?? 5);
     const level = trustClass(score);
     const badge = document.getElementById("heroTrustBadge");
     badge.textContent = `★ ${score.toFixed(2)}`;
     badge.className = `trust-badge trust-badge--${level}`;
-    document.getElementById("heroTrustMeta").textContent = `${trustLabel(score)} • оценок: ${profile.ratings_count ?? 0}`;
+    document.getElementById("heroTrustMeta").textContent = `${trustLabel(score)}`;
 
-    // KPI-плитки под Hero
-    const statDisc = document.getElementById("statDisciplines");
-    const statTrust = document.getElementById("statTrust");
-    const statPrime = document.getElementById("statPrimeTime");
-    if (statDisc) statDisc.textContent = String((profile.disciplines || []).length);
-    if (statTrust) statTrust.textContent = `${score.toFixed(2)} / 5.00`;
-    if (statPrime) statPrime.textContent = profile.prime_time || "Не указан";
-
-    // Переключение режима: свой профиль (с вкладками) vs чужой профиль (только дисциплины + оценка)
-    const tabsBar = document.getElementById("profileTabs");
-    if (tabsBar) tabsBar.style.display = isOwn ? "flex" : "none";
-
-    document.getElementById("publicProfileActions").style.display = isOwn ? "none" : "block";
+    // Видимость кнопок: свой профиль vs чужой
+    document.getElementById("openEditProfileBtn").style.display = isOwn ? "inline-flex" : "none";
+    document.getElementById("openReportProfileBtn").style.display = isOwn ? "none" : "inline-flex";
     document.getElementById("backToMyProfileBtn").style.display = isOwn ? "none" : "inline-flex";
-    document.getElementById("addDisciplineForm").style.display = isOwn ? "grid" : "none";
+    document.getElementById("toggleAddDiscBtn").style.display = isOwn ? "inline-flex" : "none";
+    document.getElementById("teammatesRateSection").style.display = isOwn ? "block" : "none";
     document.getElementById("ratePublicProfileCard").style.display = isOwn ? "none" : "block";
-
-    if (isOwn) {
-      switchProfileTab(state.activeTab || "edit");
-    } else {
-      document.querySelectorAll("[data-tab-panel]").forEach((panel) => {
-        panel.classList.toggle("is-active", panel.dataset.tabPanel === "disciplines");
-      });
+    if (!isOwn) {
+      document.getElementById("addDisciplineDrawer").style.display = "none";
     }
 
     document.getElementById("profilePageTitle").textContent = isOwn
-      ? "ЛИЧНЫЙ КАБИНЕТ"
-      : `ПРОФИЛЬ: ${profile.nickname}`;
+      ? "МОЙ ПРОФИЛЬ"
+      : `ПРОФИЛЬ // ${profile.nickname.toUpperCase()}`;
   }
 
   function fillEditForm(profile) {
@@ -295,26 +306,30 @@
     const box = document.getElementById("profileDisciplinesList");
     const list = profile.disciplines || [];
     if (!list.length) {
-      box.innerHTML = '<p class="text-sm text-muted" style="margin:0 0 12px;">Дисциплины ещё не добавлены.</p>';
+      box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Направления ещё не добавлены. Нажмите «+ Добавить», чтобы указать игры или IT-стек.</p>';
       return;
     }
-    box.innerHTML = list.map((d) => `
-      <div class="disc-chip-row">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span class="badge ${d.category === "it" ? "badge--it" : "badge--esports"}">${esc(d.discipline_name)}</span>
-          <strong style="color:#fff;">${esc(d.role_name || "Любая роль")}</strong>
-          <span class="text-xs text-dim">• ${esc(d.rank_name || "Без ранга")}</span>
-        </div>
-        ${isOwn ? `<button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-disc="${d.discipline_id}">✕ УДАЛИТЬ</button>` : ""}
-      </div>
-    `).join("");
+
+    box.innerHTML = list.map((d) => {
+      const isIt = d.category === "it";
+      return `
+        <article class="disc-card ${isIt ? "disc-card--it" : ""}">
+          <div class="disc-card__top">
+            <span class="badge ${isIt ? "badge--it" : "badge--esports"}">${esc(d.discipline_name)}</span>
+            ${isOwn ? `<button type="button" class="disc-card__del" data-del-disc="${d.discipline_id}" title="Удалить">✕</button>` : ""}
+          </div>
+          <div class="disc-card__role">${esc(d.role_name || "Универсал")}</div>
+          <div class="disc-card__rank">🏆 ${esc(d.rank_name || "Без ранга")}</div>
+        </article>
+      `;
+    }).join("");
 
     if (isOwn) {
       box.querySelectorAll("[data-del-disc]").forEach((btn) => {
         btn.addEventListener("click", async () => {
           try {
             await window.MPApi.deleteMyDiscipline(btn.dataset.delDisc);
-            showToast("Дисциплина удалена");
+            showToast("Направление удалено");
             await loadAll();
           } catch (err) {
             showToast(err.message || "Ошибка удаления");
@@ -348,21 +363,20 @@
     const score = Number(profile.trust_score ?? 5);
     const level = trustClass(score);
     const pct = Math.min(100, Math.max(0, (score / 5) * 100));
+    const total = ratingsData.total || 0;
 
-    const badge = document.getElementById("trustCardScore");
-    badge.textContent = `★ ${score.toFixed(2)}`;
-    badge.className = `trust-badge trust-badge--${level}`;
+    document.getElementById("trustCardScore").textContent = score.toFixed(2);
+    const scoreBox = document.getElementById("trustScoreBox");
+    if (scoreBox) {
+      scoreBox.className = "trust-score-box" + (level === "mid" ? " trust-score-box--mid" : level === "low" ? " trust-score-box--low" : "");
+    }
+    document.getElementById("trustCardLabel").textContent = trustLabel(score);
+    document.getElementById("trustCardSummary").textContent = `Оценок от игроков: ${total}`;
+    document.getElementById("heroReviewsInline").textContent = `💬 Отзывов: ${total}`;
 
     const fill = document.getElementById("trustMeterFill");
     fill.style.width = `${pct}%`;
     fill.className = `trust-meter__fill trust-meter__fill--${level}`;
-
-    const total = ratingsData.total || 0;
-    document.getElementById("trustCardSummary").textContent =
-      `${trustLabel(score)}. Всего отзывов: ${total}.`;
-
-    const statReviews = document.getElementById("statReviews");
-    if (statReviews) statReviews.textContent = String(total);
 
     const dist = ratingsData.distribution || { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
     document.getElementById("trustDistribution").innerHTML = [5, 4, 3, 2, 1].map((star) => {
@@ -384,16 +398,25 @@
       return;
     }
 
-    revBox.innerHTML = ratingsData.ratings.map((r) => `
-      <div class="review-item">
-        <div class="review-item__top">
-          <strong style="color:#fff;">${esc(r.from_nickname)}</strong>
-          <span class="trust-badge trust-badge--${trustClass(r.score)}">★ ${r.score}</span>
-        </div>
-        <p class="text-sm text-dim" style="margin:0 0 6px;">${esc(r.comment || "Без комментария")}</p>
-        <div class="text-xs text-muted">${new Date(r.created_at).toLocaleDateString("ru-RU")}</div>
-      </div>
-    `).join("");
+    revBox.innerHTML = ratingsData.ratings.map((r) => {
+      const rLevel = trustClass(r.score);
+      const initials = esc((r.from_nickname || "MP").slice(0, 2).toUpperCase());
+      return `
+        <article class="review-card ${rLevel === "mid" ? "review-card--mid" : rLevel === "low" ? "review-card--low" : ""}">
+          <div class="review-card__head">
+            <div class="review-author">
+              <div class="mini-avatar">${initials}</div>
+              <div>
+                <strong style="color:#fff;display:block;font-size:0.86rem;">${esc(r.from_nickname)}</strong>
+                <span class="text-xs text-muted">${new Date(r.created_at).toLocaleDateString("ru-RU")}</span>
+              </div>
+            </div>
+            <span class="trust-badge trust-badge--${rLevel}">★ ${r.score}</span>
+          </div>
+          <p class="text-sm text-dim" style="margin:0;">${esc(r.comment || "Без комментария")}</p>
+        </article>
+      `;
+    }).join("");
   }
 
   async function renderTeammates() {
@@ -401,28 +424,21 @@
     try {
       const { teammates } = await window.MPApi.getMyTeammates();
       if (!teammates?.length) {
-        box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Пока нет взаимных мэтчей или тиммейтов. Поставьте лайки в ленте свайпов!</p>';
+        box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Пока нет взаимных мэтчей. Поставьте лайки в ленте свайпов!</p>';
         return;
       }
       box.innerHTML = teammates.map((t) => {
         const initials = esc((t.nickname || "MP").slice(0, 2).toUpperCase());
         return `
-          <div class="disc-chip-row">
-            <div class="teammate-info">
-              <div class="teammate-avatar">${initials}</div>
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-                  <strong style="color:#fff;">${esc(t.nickname)}</strong>
-                  <span class="trust-badge trust-badge--${trustClass(t.trust_score)}">★ ${Number(t.trust_score).toFixed(2)}</span>
-                </div>
-                <div class="text-xs text-muted" style="margin-top:4px;">
-                  ${t.my_score ? `Ваша оценка: ${t.my_score} ★ (${esc(t.my_comment || "без комментария")})` : "Вы ещё не оценивали этого игрока"}
-                </div>
+          <div class="squad-member">
+            <div class="squad-member__left">
+              <div class="mini-avatar">${initials}</div>
+              <div style="min-width:0;">
+                <strong style="color:#fff;display:block;font-size:0.84rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(t.nickname)}</strong>
+                <span class="text-xs text-muted">★ ${Number(t.trust_score).toFixed(2)}${t.my_score ? ` • ваша: ${t.my_score}★` : ""}</span>
               </div>
             </div>
-            <button type="button" class="arcade-btn-gold arcade-btn--xs" data-inspect-user="${t.id}">
-              ★ ОЦЕНИТЬ / ПРОФИЛЬ
-            </button>
+            <button type="button" class="arcade-btn-gold arcade-btn--xs" data-inspect-user="${t.id}">ОТКРЫТЬ</button>
           </div>
         `;
       }).join("");
@@ -438,7 +454,7 @@
         });
       });
     } catch (_) {
-      box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Войдите в аккаунт, чтобы оценивать тиммейтов.</p>';
+      box.innerHTML = '<p class="text-sm text-muted" style="margin:0;">Войдите в аккаунт, чтобы видеть отряд.</p>';
     }
   }
 
@@ -473,8 +489,17 @@
   }
 
   function bindProfileEvents() {
-    document.querySelectorAll("[data-profile-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => switchProfileTab(btn.dataset.profileTab));
+    document.getElementById("openEditProfileBtn")?.addEventListener("click", () => {
+      if (state.currentProfile) fillEditForm(state.currentProfile);
+      openModal("editProfileModal");
+    });
+
+    document.getElementById("toggleAddDiscBtn")?.addEventListener("click", () => {
+      const drawer = document.getElementById("addDisciplineDrawer");
+      if (!drawer) return;
+      const open = drawer.style.display === "none";
+      drawer.style.display = open ? "block" : "none";
+      document.getElementById("toggleAddDiscBtn").textContent = open ? "✕ ЗАКРЫТЬ" : "+ ДОБАВИТЬ";
     });
 
     document.getElementById("profAvatarUrl")?.addEventListener("input", (e) => {
@@ -547,8 +572,9 @@
           external_links: links
         });
         if (state.draftController?.clear) state.draftController.clear();
+        closeModal("editProfileModal");
         updateHeaderUI();
-        showToast("Профиль сохранён");
+        showToast("Профиль обновлён");
         await loadAll();
       } catch (err) {
         errBox.textContent = err.message || "Ошибка сохранения профиля";
@@ -564,10 +590,12 @@
           role_id: document.getElementById("discRoleSelect").value || null,
           rank_id: document.getElementById("discRankSelect").value || null
         });
-        showToast("Дисциплина сохранена в профиле");
+        document.getElementById("addDisciplineDrawer").style.display = "none";
+        document.getElementById("toggleAddDiscBtn").textContent = "+ ДОБАВИТЬ";
+        showToast("Направление добавлено в профиль");
         await loadAll();
       } catch (err) {
-        showToast(err.message || "Не удалось добавить дисциплину");
+        showToast(err.message || "Не удалось добавить направление");
       }
     });
 
