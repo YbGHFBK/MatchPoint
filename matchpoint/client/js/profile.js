@@ -117,7 +117,15 @@
   }
 
   function initHeaderControls() {
-    window.MPStorage.initTheme();
+    const theme = window.MPStorage.initTheme();
+    const themeBtn = document.getElementById("themeToggleBtn");
+    if (themeBtn) {
+      themeBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+      themeBtn.addEventListener("click", () => {
+        const next = window.MPStorage.toggleTheme();
+        themeBtn.textContent = next === "dark" ? "☀️" : "🌙";
+      });
+    }
 
     const burgerBtn = document.getElementById("burgerBtn");
     const drawer = document.getElementById("mobileDrawer");
