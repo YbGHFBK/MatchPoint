@@ -477,21 +477,44 @@
 
   function buildCardHTML(card, index) {
     const posClass = index === 0 ? "is-top" : index === 1 ? "is-next" : "is-third";
-    const pd = card.primary_discipline || (card.profile_disciplines && card.profile_disciplines[0]) || {};
+    const pds = Array.isArray(card.profile_disciplines) ? card.profile_disciplines : [];
+    const pd = card.primary_discipline || pds[0] || {};
     const isTeam = card.card_type === "team" && card.team;
     const trustNum = Number(card.trust_score ?? 5).toFixed(2);
     const trustCls = trustBadgeClass(card.trust_score);
 
-    const typeBadge = isTeam
-      ? `<span class="badge badge--team">👥 Команда (${esc(card.team.members_count || 3)}/5)</span>`
-      : pd.category === "it"
-        ? `<span class="badge badge--it">💻 Разработчик</span>`
-        : `<span class="badge badge--esports">🎮 Игрок</span>`;
+    const hasEsports = pds.some((d) => d.category === "esports");
+    const hasIt = pds.some((d) => d.category === "it");
+
+    const badges = [];
+    if (isTeam) {
+      const teamDisc = pds.find((d) => Number(d.discipline_id) === Number(card.team.discipline_id)) || pd;
+      const teamLabel = teamDisc.category === "it"
+        ? `🚀 Команда разрабов (${esc(card.team.members_count || 3)}/5)`
+        : `🛡 Команда игроков (${esc(card.team.members_count || 3)}/5)`;
+      badges.push(`<span class="badge badge--team">${teamLabel}</span>`);
+    } else {
+      if (hasEsports) {
+        badges.push(`<span class="badge badge--esports">🎮 Игрок</span>`);
+      }
+      if (hasIt) {
+        badges.push(`<span class="badge badge--it">💻 Разработчик</span>`);
+      }
+      if (!badges.length) {
+        badges.push(`<span class="badge badge--esports">🎮 Игрок</span>`);
+      }
+    }
+    const typeBadge = `<div class="card-hero__badges" style="display:flex;flex-wrap:wrap;gap:6px;">${badges.join("")}</div>`;
+
+    const allRolesText = [...new Set(pds.map((d) => d.role_name).filter(Boolean))].join(", ");
+    const allRanksText = [...new Set(pds.map((d) => d.rank_name).filter(Boolean))].join(", ");
 
     const title = isTeam ? card.team.name : `@${card.nickname}`;
     const subtitle = isTeam
       ? `Капитан @${card.nickname} • Ищем: ${card.team.looking_for_role_name || pd.role_name}`
-      : `${pd.discipline_name || "MatchPoint"} • ${pd.role_name || "Универсал"}`;
+      : pds.length > 1
+        ? pds.map((d) => `${d.discipline_name} • ${d.role_name || "Универсал"}`).join("  |  ")
+        : `${pd.discipline_name || "MatchPoint"} • ${pd.role_name || "Универсал"}`;
 
     const extLinks = card.external_links || {};
     const extHTML = Object.entries(extLinks)
@@ -531,11 +554,11 @@
           <div class="card-metrics">
             <div class="metric-box">
               <span>Ранг / Грейд</span>
-              <b title="${esc(pd.rank_name || "Любой")}">${esc(pd.rank_name || "Любой")}</b>
+              <b title="${esc(allRanksText || pd.rank_name || "Любой")}">${esc(allRanksText || pd.rank_name || "Любой")}</b>
             </div>
             <div class="metric-box">
-              <span>${isTeam ? "Вакансия" : "Роль"}</span>
-              <b title="${esc(isTeam ? card.team.looking_for_role_name : pd.role_name)}">${esc((isTeam ? card.team.looking_for_role_name : pd.role_name) || "—")}</b>
+              <span>${isTeam ? "Вакансия" : (pds.length > 1 ? "Роли" : "Роль")}</span>
+              <b title="${esc(isTeam ? card.team.looking_for_role_name : (allRolesText || pd.role_name))}">${esc((isTeam ? card.team.looking_for_role_name : (allRolesText || pd.role_name)) || "—")}</b>
             </div>
             <div class="metric-box">
               <span>Прайм-тайм</span>
@@ -674,18 +697,51 @@
     }, 270);
   }
 
-  function undoLastSwipe() {
+  function cardMatchesFilters(card, filters) {
+    if (!card) return false;
+    const ct = filters.card_type || "all";
+    if (ct !== "all" && card.card_type !== ct) return false;
+
+    const pds = Array.isArray(card.profile_disciplines) ? card.profile_disciplines : [];
+    const cat = filters.category || "all";
+    if (cat !== "all" && !pds.some((d) => d.category === cat)) return false;
+    if (filters.discipline_id && !pds.some((d) => Number(d.discipline_id) === Number(filters.discipline_id))) return false;
+    if (filters.role_id && !pds.some((d) => Number(d.role_id) === Number(filters.role_id))) return false;
+    if (filters.rank_id && !pds.some((d) => Number(d.rank_id) === Number(filters.rank_id))) return false;
+    if (filters.prime_time && !String(card.prime_time || "").includes(filters.prime_time)) return false;
+    if (filters.min_trust && Number(card.trust_score) < Number(filters.min_trust)) return false;
+    return true;
+  }
+
+  async function undoLastSwipe() {
     if (state.isAnimating) return;
     const last = window.MPStorage.popLastViewedCard();
     if (!last || !last.cardSnapshot) {
       showToast("ℹ️ В истории текущей сессии нет карточек для возврата");
       return;
     }
-    window.MPApi.undoSeedSwipe?.(last.to_user_id);
-    state.cards.unshift(last.cardSnapshot);
-    renderDeck();
+
+    try {
+      await window.MPApi.undoSwipe(last.to_user_id);
+    } catch (err) {
+      showToast(`⚠️ Не удалось отменить свайп: ${err.message}`);
+    }
+
+    const filters = window.MPStorage.getFilters();
+    const fitsCurrentTab = cardMatchesFilters(last.cardSnapshot, filters);
+
+    await Promise.all([loadCards(), loadMatches()]);
+    if (fitsCurrentTab) {
+      state.cards = [
+        last.cardSnapshot,
+        ...state.cards.filter((c) => c.card_key !== last.cardSnapshot.card_key)
+      ];
+      renderDeck();
+      showToast(`↶ Возвращена карточка: ${last.display_title}`);
+    } else {
+      showToast(`↶ Свайп отменён: ${last.display_title} возвращена в свою категорию`);
+    }
     renderSessionHistory();
-    showToast(`↶ Возвращена карточка: ${last.display_title}`);
   }
 
   // ================= ВЗАИМНЫЕ МЭТЧИ (matches + contacts JSONB) =================

@@ -46,20 +46,66 @@ async function attachDisciplines(users) {
   }));
 }
 
+// Подгружает открытые команды капитанов для массива user_id одним запросом
+async function attachTeams(users) {
+  if (users.length === 0) return [];
+
+  const userIds = users.map((u) => u.id);
+  const { rows: teamRows } = await db.query(
+    `SELECT
+       t.id,
+       t.captain_id,
+       t.discipline_id,
+       d.name AS discipline_name,
+       d.category,
+       t.name,
+       t.description,
+       t.looking_for_role_id,
+       dr.name AS looking_for_role_name,
+       (SELECT COUNT(*)::int FROM team_members tm WHERE tm.team_id = t.id AND tm.status = 'accepted') AS members_count
+     FROM teams t
+     JOIN disciplines d ON d.id = t.discipline_id
+     LEFT JOIN discipline_roles dr ON dr.id = t.looking_for_role_id
+     WHERE t.captain_id = ANY($1::int[])
+       AND t.looking_for_role_id IS NOT NULL
+     ORDER BY t.id ASC`,
+    [userIds]
+  );
+
+  const byCaptain = new Map();
+  for (const row of teamRows) {
+    if (!byCaptain.has(row.captain_id)) {
+      byCaptain.set(row.captain_id, row);
+    }
+  }
+
+  return users.map((u) => ({
+    ...u,
+    team: byCaptain.get(u.id) || null,
+  }));
+}
+
 // 1. Лента кандидатов для свайпов с фильтрами
 router.get('/feed', requireAuth, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
-    const { discipline_id, role_id, rank_id, category, min_trust } = req.query;
-    const rawLimit = Number(req.query.limit) || 20;
-    const limit = Math.min(Math.max(rawLimit, 1), 50);
+    const { discipline_id, role_id, rank_id, category, min_trust, card_type } = req.query;
+    const rawLimit = Number(req.query.limit) || 100;
+    const limit = Math.min(Math.max(rawLimit, 1), 200);
 
     const values = [userId];
     const conditions = [
       'u.id <> $1',
+      "u.role <> 'guest'",
       "u.status NOT IN ('temp_banned', 'perm_banned')",
       'NOT EXISTS (SELECT 1 FROM swipes s WHERE s.from_user_id = $1 AND s.to_user_id = u.id)',
     ];
+
+    if (card_type === 'team') {
+      conditions.push('EXISTS (SELECT 1 FROM teams t WHERE t.captain_id = u.id AND t.looking_for_role_id IS NOT NULL)');
+    } else if (card_type === 'player') {
+      conditions.push('NOT EXISTS (SELECT 1 FROM teams t WHERE t.captain_id = u.id AND t.looking_for_role_id IS NOT NULL)');
+    }
 
     if (min_trust !== undefined && min_trust !== '') {
       const trustNum = Number(min_trust);
@@ -108,13 +154,29 @@ router.get('/feed', requireAuth, async (req, res, next) => {
     }
 
     if (discConditions.length > 1) {
+      const teamConditions = ['t.captain_id = u.id', 't.looking_for_role_id IS NOT NULL'];
+      if (discipline_id !== undefined && discipline_id !== '') {
+        teamConditions.push(`t.discipline_id = ${Number(discipline_id)}`);
+      }
+      if (role_id !== undefined && role_id !== '') {
+        teamConditions.push(`t.looking_for_role_id = ${Number(role_id)}`);
+      }
+      if (category !== undefined && category !== '') {
+        teamConditions.push(`td.category = '${category === 'it' ? 'it' : 'esports'}'`);
+      }
+
       conditions.push(
-        `EXISTS (
+        `(EXISTS (
            SELECT 1
            FROM profile_disciplines pd
            JOIN disciplines d ON d.id = pd.discipline_id
            WHERE ${discConditions.join(' AND ')}
-         )`
+         ) OR EXISTS (
+           SELECT 1
+           FROM teams t
+           JOIN disciplines td ON td.id = t.discipline_id
+           WHERE ${teamConditions.join(' AND ')}
+         ))`
       );
     }
 
@@ -138,7 +200,8 @@ router.get('/feed', requireAuth, async (req, res, next) => {
       values
     );
 
-    const candidates = await attachDisciplines(rows);
+    const withDiscs = await attachDisciplines(rows);
+    const candidates = await attachTeams(withDiscs);
     res.json({ candidates });
   } catch (err) {
     next(err);
@@ -315,6 +378,32 @@ router.delete('/matches/:matchId', requireAuth, async (req, res, next) => {
     }
 
     res.json({ message: 'Мэтч удалён' });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// 5. Отмена последнего свайпа (Undo)
+router.delete('/:targetUserId', requireAuth, async (req, res, next) => {
+  try {
+    const userId = getAuthUserId(req);
+    const targetUserId = Number(req.params.targetUserId);
+
+    if (!Number.isInteger(targetUserId) || targetUserId <= 0) {
+      return res.status(400).json({ error: 'Некорректный targetUserId' });
+    }
+
+    await db.query(
+      'DELETE FROM swipes WHERE from_user_id = $1 AND to_user_id = $2',
+      [userId, targetUserId]
+    );
+
+    await db.query(
+      'DELETE FROM matches WHERE user1_id = LEAST($1::int, $2::int) AND user2_id = GREATEST($1::int, $2::int)',
+      [userId, targetUserId]
+    );
+
+    res.json({ ok: true, removed_user_id: targetUserId });
   } catch (err) {
     next(err);
   }

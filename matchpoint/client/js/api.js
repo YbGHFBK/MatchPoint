@@ -624,6 +624,495 @@
     };
   }
 
+  // --- Автономные сид-данные для teams.html и events.html (работа без Node.js/npm) ---
+  const CATALOG_SEED_KEY = "mp_catalog_seed_state_v1";
+
+  const INITIAL_LOCATIONS = [
+    { id: 1, city: "Гродно", venue_name: "CyberArena Grodno", address: "ул. Советская 18", lat: 53.6834, lng: 23.8342, is_verified: true },
+    { id: 2, city: "Минск", venue_name: "Meta Arena", address: "пр-т Победителей 84", lat: 53.9362, lng: 27.5105, is_verified: true },
+    { id: 3, city: "Гродно", venue_name: "Технопарк / Коворкинг", address: "ул. Горького 91А", lat: 53.7042, lng: 23.8166, is_verified: true }
+  ];
+
+  const INITIAL_TEAM_MEMBERS = [
+    // Grodno Five (id: 1)
+    { team_id: 1, user_id: 4, role_id: 5, status: "accepted" },
+    { team_id: 1, user_id: 9, role_id: 1, status: "accepted" },
+    { team_id: 1, user_id: 14, role_id: 3, status: "accepted" },
+    { team_id: 1, user_id: 5, role_id: 2, status: "pending" },
+    // Radiant Stack (id: 2)
+    { team_id: 2, user_id: 7, role_id: 7, status: "accepted" },
+    { team_id: 2, user_id: 10, role_id: 10, status: "accepted" },
+    { team_id: 2, user_id: 12, role_id: 9, status: "accepted" },
+    // NullPointer Crew (id: 3)
+    { team_id: 3, user_id: 8, role_id: 11, status: "accepted" },
+    { team_id: 3, user_id: 11, role_id: 12, status: "accepted" },
+    { team_id: 3, user_id: 12, role_id: 13, status: "accepted" },
+    // Капитаны остальных команд из INITIAL_TEAMS
+    { team_id: 4, user_id: 30, role_id: 5, status: "accepted" },
+    { team_id: 5, user_id: 31, role_id: 5, status: "accepted" },
+    { team_id: 6, user_id: 32, role_id: 10, status: "accepted" },
+    { team_id: 7, user_id: 33, role_id: 7, status: "accepted" },
+    { team_id: 8, user_id: 34, role_id: 3, status: "accepted" },
+    { team_id: 9, user_id: 40, role_id: 15, status: "accepted" },
+    { team_id: 10, user_id: 41, role_id: 12, status: "accepted" },
+    { team_id: 11, user_id: 42, role_id: 13, status: "accepted" },
+    { team_id: 12, user_id: 43, role_id: 11, status: "accepted" },
+    { team_id: 13, user_id: 44, role_id: 11, status: "accepted" }
+  ];
+
+  const INITIAL_EVENTS = [
+    {
+      id: 1,
+      organizer_id: 3,
+      discipline_id: 1,
+      location_id: 1,
+      event_type: "esports",
+      title: "MatchPoint Winter Cup: CS2 5x5",
+      description: "Открытый LAN-турнир по Counter-Strike 2. Групповой этап + плей-офф Single Elimination.",
+      start_at: "2026-12-12T09:00:00.000Z",
+      max_participants: 16,
+      status: "open",
+      details: {
+        subtype: "lan",
+        format: "5x5",
+        bracket_type: "single_elimination",
+        prize_pool: "1500 BYN",
+        map_pool: ["Mirage", "Inferno", "Ancient", "Anubis", "Nuke"]
+      }
+    },
+    {
+      id: 2,
+      organizer_id: 3,
+      discipline_id: 3,
+      location_id: 3,
+      event_type: "hackathon",
+      title: "Winter CodeJam 2026",
+      description: "36-часовой хакатон для студентов и разработчиков: от идеи до рабочего прототипа.",
+      start_at: "2026-12-19T07:00:00.000Z",
+      max_participants: 20,
+      status: "open",
+      details: {
+        subtype: "hackathon",
+        tracks: ["Web & SaaS", "AI / ML", "GameDev"],
+        tech_stack: ["Node.js", "Python", "PostgreSQL", "HTML/CSS/JS"],
+        team_size_limit: 4,
+        submission_deadline: "2026-12-20T15:00:00.000Z"
+      }
+    }
+  ];
+
+  const INITIAL_EVENT_REGISTRATIONS = [
+    { id: 1, event_id: 1, user_id: null, team_id: 1, repository_url: null, mentor: null, evaluation: null },
+    { id: 2, event_id: 1, user_id: 11, team_id: null, repository_url: null, mentor: null, evaluation: null },
+    { id: 3, event_id: 2, user_id: null, team_id: 3, repository_url: null, mentor: null, evaluation: null },
+    { id: 4, event_id: 2, user_id: 5, team_id: null, repository_url: null, mentor: null, evaluation: null }
+  ];
+
+  const INITIAL_TOURNAMENT_MATCHES = [
+    {
+      id: 1,
+      event_id: 1,
+      round: 1,
+      participant1_id: 1,
+      participant2_id: 2,
+      score: "13:11",
+      proof_url: "https://example.com/proofs/match1_scoreboard.png",
+      status: "disputed",
+      winner_id: null
+    }
+  ];
+
+  function loadCatalogSeed() {
+    try {
+      const raw = global.localStorage && global.localStorage.getItem(CATALOG_SEED_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (_) {}
+    return {
+      teams: INITIAL_TEAMS.map((t) => ({ ...t })),
+      team_members: INITIAL_TEAM_MEMBERS.map((m) => ({ ...m })),
+      locations: INITIAL_LOCATIONS.map((l) => ({ ...l })),
+      events: INITIAL_EVENTS.map((ev) => ({ ...ev, details: { ...ev.details } })),
+      registrations: INITIAL_EVENT_REGISTRATIONS.map((r) => ({ ...r })),
+      matches: INITIAL_TOURNAMENT_MATCHES.map((m) => ({ ...m }))
+    };
+  }
+
+  function saveCatalogSeed(state) {
+    try {
+      if (global.localStorage) {
+        global.localStorage.setItem(CATALOG_SEED_KEY, JSON.stringify(state));
+      }
+    } catch (_) {}
+  }
+
+  function makeHttpError(status, message) {
+    const err = new Error(message);
+    err.status = status;
+    return err;
+  }
+
+  function getOfflineCurrentUser() {
+    const stored = global.MPStorage && global.MPStorage.getUser();
+    if (!stored || !stored.id || stored.role === "guest") return null;
+    const seedAcc = SEED_ACCOUNTS.find((a) => a.id === Number(stored.id));
+    return seedAcc ? { ...seedAcc, ...stored } : stored;
+  }
+
+  function formatSeedEvent(ev, state) {
+    const disc = SEED_DICTIONARIES.disciplines.find((d) => d.id === Number(ev.discipline_id)) || {};
+    const loc = ev.location_id ? state.locations.find((l) => l.id === Number(ev.location_id)) || null : null;
+    const details = ev.details || {};
+    const subtype = details.subtype || (ev.event_type === "hackathon" ? "hackathon" : ev.location_id ? "lan" : "online");
+    const registrations_count = state.registrations.filter((r) => r.event_id === ev.id).length;
+    return {
+      ...ev,
+      details,
+      discipline_name: disc.name || "",
+      category: disc.category || (ev.event_type === "hackathon" ? "it" : "esports"),
+      subtype,
+      location: loc,
+      registrations_count
+    };
+  }
+
+  function formatSeedRegistration(r, state) {
+    let name = "Участник #" + r.id;
+    if (r.team_id) {
+      const team = state.teams.find((t) => t.id === Number(r.team_id));
+      name = team ? team.name : "Команда #" + r.team_id;
+    } else if (r.user_id) {
+      const acc = SEED_ACCOUNTS.find((a) => a.id === Number(r.user_id));
+      name = acc ? acc.nickname : "Игрок #" + r.user_id;
+    }
+    return { ...r, name };
+  }
+
+  function formatSeedTeamMember(m) {
+    const acc = SEED_ACCOUNTS.find((a) => a.id === Number(m.user_id)) || {};
+    const role = SEED_DICTIONARIES.discipline_roles.find((r) => r.id === Number(m.role_id)) || {};
+    return {
+      ...m,
+      nickname: acc.nickname || "User #" + m.user_id,
+      role_name: role.name || null
+    };
+  }
+
+  function tryCatalogOfflineFallback(path, options = {}) {
+    const method = String(options.method || "GET").toUpperCase();
+    const parsedUrl = new URL(path, "http://localhost");
+    const pathname = parsedUrl.pathname;
+    let body = {};
+    if (options.body) {
+      try { body = JSON.parse(options.body); } catch (_) {}
+    }
+
+    // 1. Auth endpoints, вызываемые напрямую из catalog.js
+    if (pathname === "/api/auth/me" && method === "GET") {
+      const current = getOfflineCurrentUser();
+      if (!current) throw makeHttpError(401, "Требуется авторизация");
+      return { user: current, source: "seed" };
+    }
+    if (pathname === "/api/auth/login" && method === "POST") {
+      const cleanEmail = String(body.email || "").trim().toLowerCase();
+      const found = SEED_ACCOUNTS.find((u) => u.email === cleanEmail);
+      if (!found || body.password !== "password") {
+        throw makeHttpError(401, "Неверный email или пароль (для сид-аккаунтов пароль: password)");
+      }
+      return { token: `demo_jwt_user_${found.id}`, user: found, source: "seed" };
+    }
+
+    // 2. Teams endpoints (/api/teams...)
+    if (pathname === "/api/teams" && method === "GET") {
+      const state = loadCatalogSeed();
+      const teams = state.teams
+        .map((t) => {
+          const disc = SEED_DICTIONARIES.disciplines.find((d) => d.id === Number(t.discipline_id)) || {};
+          const role = SEED_DICTIONARIES.discipline_roles.find((r) => r.id === Number(t.looking_for_role_id)) || {};
+          const members_count = state.team_members.filter((m) => m.team_id === t.id && m.status === "accepted").length || t.members_count || 1;
+          return {
+            ...t,
+            discipline_name: disc.name || "",
+            looking_for_role_name: role.name || null,
+            members_count
+          };
+        })
+        .sort((a, b) => a.name.localeCompare(b.name, "ru") || a.id - b.id);
+      return { teams, source: "seed" };
+    }
+
+    if (pathname === "/api/teams" && method === "POST") {
+      const current = getOfflineCurrentUser();
+      if (!current) throw makeHttpError(401, "Требуется авторизация");
+      if (current.role !== "captain") throw makeHttpError(403, "Доступно только капитану");
+      const name = String(body.name || "").trim();
+      if (name.length < 3 || name.length > 50) throw makeHttpError(400, "Укажите корректное название команды");
+      const state = loadCatalogSeed();
+      const nextId = state.teams.reduce((m, t) => Math.max(m, t.id), 0) + 1;
+      const newTeam = {
+        id: nextId,
+        captain_id: current.id,
+        discipline_id: Number(body.discipline_id) || 1,
+        name,
+        description: body.description || null,
+        looking_for_role_id: body.looking_for_role_id ? Number(body.looking_for_role_id) : null,
+        members_count: 1
+      };
+      state.teams.push(newTeam);
+      state.team_members.push({ team_id: nextId, user_id: current.id, role_id: null, status: "accepted" });
+      saveCatalogSeed(state);
+      return { team: newTeam, source: "seed" };
+    }
+
+    const teamMatch = pathname.match(/^\/api\/teams\/(\d+)(?:\/(applications|vacancy|members))?$/);
+    if (teamMatch) {
+      const teamId = Number(teamMatch[1]);
+      const sub = teamMatch[2] || "";
+      const state = loadCatalogSeed();
+      const team = state.teams.find((t) => t.id === teamId);
+      if (!team) throw makeHttpError(404, "Команда не найдена");
+
+      if (!sub && method === "GET") {
+        const disc = SEED_DICTIONARIES.disciplines.find((d) => d.id === Number(team.discipline_id)) || {};
+        const role = SEED_DICTIONARIES.discipline_roles.find((r) => r.id === Number(team.looking_for_role_id)) || {};
+        const cap = SEED_ACCOUNTS.find((a) => a.id === Number(team.captain_id)) || {};
+        const members = state.team_members
+          .filter((m) => m.team_id === teamId && m.status === "accepted")
+          .map(formatSeedTeamMember);
+        const registered_event_ids = state.registrations
+          .filter((r) => r.team_id === teamId)
+          .map((r) => r.event_id);
+        return {
+          team: {
+            ...team,
+            discipline_name: disc.name || "",
+            looking_for_role_name: role.name || null,
+            captain_nickname: cap.nickname || "Капитан",
+            registered_event_ids,
+            members
+          },
+          source: "seed"
+        };
+      }
+
+      if (sub === "applications" && method === "GET") {
+        const applications = state.team_members
+          .filter((m) => m.team_id === teamId && m.status === "pending")
+          .map(formatSeedTeamMember);
+        return { applications, source: "seed" };
+      }
+
+      if (sub === "applications" && method === "POST") {
+        const current = getOfflineCurrentUser();
+        if (!current) throw makeHttpError(401, "Требуется авторизация");
+        const exists = state.team_members.find((m) => m.team_id === teamId && m.user_id === current.id);
+        if (exists) throw makeHttpError(409, "Вы уже подали заявку или состоите в команде");
+        const app = { team_id: teamId, user_id: current.id, role_id: team.looking_for_role_id || null, status: "pending" };
+        state.team_members.push(app);
+        saveCatalogSeed(state);
+        return { application: app, source: "seed" };
+      }
+
+      if (sub === "vacancy" && method === "PATCH") {
+        team.looking_for_role_id = body.looking_for_role_id ? Number(body.looking_for_role_id) : null;
+        saveCatalogSeed(state);
+        return { team, source: "seed" };
+      }
+
+      if (sub === "members" && method === "PATCH") {
+        const uid = Number(body.user_id);
+        if (body.action === "accept") {
+          const m = state.team_members.find((x) => x.team_id === teamId && x.user_id === uid);
+          if (m) m.status = "accepted";
+        } else if (body.action === "kick") {
+          state.team_members = state.team_members.filter((x) => !(x.team_id === teamId && x.user_id === uid));
+        }
+        saveCatalogSeed(state);
+        return { ok: true, source: "seed" };
+      }
+    }
+
+    // 3. Events endpoints (/api/events...)
+    if (pathname === "/api/events/locations" && method === "GET") {
+      const state = loadCatalogSeed();
+      return { locations: state.locations, source: "seed" };
+    }
+
+    if (pathname === "/api/events" && method === "GET") {
+      const state = loadCatalogSeed();
+      const cat = parsedUrl.searchParams.get("category");
+      const etype = parsedUrl.searchParams.get("event_type");
+      const kind = parsedUrl.searchParams.get("subtype");
+      const st = parsedUrl.searchParams.get("status");
+      const events = state.events
+        .map((ev) => formatSeedEvent(ev, state))
+        .filter((ev) => (!cat || ev.category === cat) && (!etype || ev.event_type === etype) && (!kind || ev.subtype === kind) && (!st || ev.status === st))
+        .sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at) || a.id - b.id);
+      return { events, source: "seed" };
+    }
+
+    if (pathname === "/api/events" && method === "POST") {
+      const current = getOfflineCurrentUser();
+      if (!current) throw makeHttpError(401, "Требуется авторизация");
+      if (current.role !== "organizer") throw makeHttpError(403, "Доступно только организатору");
+      const state = loadCatalogSeed();
+      const nextId = state.events.reduce((m, ev) => Math.max(m, ev.id), 0) + 1;
+      const newEvent = {
+        id: nextId,
+        organizer_id: current.id,
+        discipline_id: Number(body.discipline_id) || 1,
+        location_id: body.location_id ? Number(body.location_id) : null,
+        event_type: body.event_type || "esports",
+        title: String(body.title || "").trim(),
+        description: body.description || "",
+        start_at: body.start_at || new Date().toISOString(),
+        max_participants: Number(body.max_participants) || 16,
+        status: "open",
+        details: body.details || {}
+      };
+      state.events.push(newEvent);
+      saveCatalogSeed(state);
+      return { event: formatSeedEvent(newEvent, state), source: "seed" };
+    }
+
+    const eventMatch = pathname.match(/^\/api\/events\/(\d+)(?:\/(register|registrations\/me|registrations(?:\/(\d+))?|bracket|result))?$/);
+    if (eventMatch) {
+      const eventId = Number(eventMatch[1]);
+      const sub = eventMatch[2] || "";
+      const regId = eventMatch[3] ? Number(eventMatch[3]) : null;
+      const state = loadCatalogSeed();
+      const ev = state.events.find((x) => x.id === eventId);
+      if (!ev) throw makeHttpError(404, "Ивент не найден");
+
+      if (!sub && method === "GET") {
+        return { event: formatSeedEvent(ev, state), source: "seed" };
+      }
+
+      if (!sub && method === "PATCH") {
+        if (body.theme !== undefined) ev.details = { ...(ev.details || {}), theme: body.theme };
+        if (body.schedule !== undefined) ev.details = { ...(ev.details || {}), schedule: body.schedule };
+        if (body.start_at !== undefined) ev.start_at = body.start_at;
+        if (body.location_id !== undefined) ev.location_id = body.location_id;
+        if (body.status !== undefined) ev.status = body.status;
+        saveCatalogSeed(state);
+        return { event: formatSeedEvent(ev, state), source: "seed" };
+      }
+
+      if (sub === "register" && method === "POST") {
+        const current = getOfflineCurrentUser();
+        if (!current) throw makeHttpError(401, "Требуется авторизация");
+        const teamId = body.team_id ? Number(body.team_id) : null;
+        const dup = state.registrations.find((r) => r.event_id === eventId && (teamId ? r.team_id === teamId : r.user_id === current.id));
+        if (dup) throw makeHttpError(409, "Регистрация уже существует");
+        const nextId = state.registrations.reduce((m, r) => Math.max(m, r.id), 0) + 1;
+        const reg = {
+          id: nextId,
+          event_id: eventId,
+          user_id: teamId ? null : current.id,
+          team_id: teamId,
+          repository_url: null,
+          mentor: null,
+          evaluation: null
+        };
+        state.registrations.push(reg);
+        saveCatalogSeed(state);
+        return { registration: formatSeedRegistration(reg, state), source: "seed" };
+      }
+
+      if (sub === "registrations/me" && method === "GET") {
+        const current = getOfflineCurrentUser();
+        if (!current) return { registrations: [], source: "seed" };
+        const myTeamIds = new Set(
+          state.teams.filter((t) => t.captain_id === current.id).map((t) => t.id)
+        );
+        state.team_members
+          .filter((m) => m.user_id === current.id && m.status === "accepted")
+          .forEach((m) => myTeamIds.add(m.team_id));
+        const registrations = state.registrations
+          .filter((r) => r.event_id === eventId && (r.user_id === current.id || (r.team_id && myTeamIds.has(r.team_id))))
+          .map((r) => formatSeedRegistration(r, state));
+        return { registrations, source: "seed" };
+      }
+
+      if (sub === "registrations" && method === "GET") {
+        const registrations = state.registrations
+          .filter((r) => r.event_id === eventId)
+          .map((r) => formatSeedRegistration(r, state));
+        return { registrations, source: "seed" };
+      }
+
+      if (sub.startsWith("registrations/") && regId && method === "PATCH") {
+        const reg = state.registrations.find((r) => r.id === regId && r.event_id === eventId);
+        if (!reg) throw makeHttpError(404, "Регистрация не найдена");
+        if (body.mentor !== undefined) reg.mentor = body.mentor;
+        if (body.evaluation !== undefined) reg.evaluation = body.evaluation;
+        saveCatalogSeed(state);
+        return { registration: formatSeedRegistration(reg, state), source: "seed" };
+      }
+
+      if (sub === "bracket" && method === "GET") {
+        const matches = state.matches
+          .filter((m) => m.event_id === eventId)
+          .map((m) => {
+            const p1 = state.registrations.find((r) => r.id === m.participant1_id);
+            const p2 = state.registrations.find((r) => r.id === m.participant2_id);
+            return {
+              ...m,
+              participant1_name: p1 ? formatSeedRegistration(p1, state).name : null,
+              participant2_name: p2 ? formatSeedRegistration(p2, state).name : null
+            };
+          });
+        return { matches, source: "seed" };
+      }
+
+      if (sub === "bracket" && method === "POST") {
+        const regs = state.registrations.filter((r) => r.event_id === eventId);
+        if (regs.length < 2) throw makeHttpError(400, "Для сетки нужно минимум 2 участника");
+        let nextId = state.matches.reduce((m, x) => Math.max(m, x.id), 0) + 1;
+        for (let i = 0; i < regs.length; i += 2) {
+          state.matches.push({
+            id: nextId++,
+            event_id: eventId,
+            round: 1,
+            participant1_id: regs[i].id,
+            participant2_id: regs[i + 1] ? regs[i + 1].id : null,
+            score: null,
+            proof_url: null,
+            status: regs[i + 1] ? "scheduled" : "confirmed",
+            winner_id: regs[i + 1] ? null : regs[i].id
+          });
+        }
+        ev.status = "ongoing";
+        saveCatalogSeed(state);
+        return { ok: true, source: "seed" };
+      }
+
+      if (sub === "result" && method === "POST") {
+        if (body.registration_id) {
+          const reg = state.registrations.find((r) => r.id === Number(body.registration_id) && r.event_id === eventId);
+          if (!reg) throw makeHttpError(404, "Регистрация не найдена");
+          reg.repository_url = body.repository_url;
+          saveCatalogSeed(state);
+          return { registration: formatSeedRegistration(reg, state), source: "seed" };
+        }
+        const match = state.matches.find((m) => m.id === Number(body.match_id) && m.event_id === eventId);
+        if (!match) throw makeHttpError(404, "Матч не найден");
+        if (body.action === "confirm") {
+          match.winner_id = Number(body.winner_id);
+          match.score = body.score;
+          match.status = "confirmed";
+        } else {
+          match.score = body.score;
+          match.proof_url = body.proof_url;
+          match.status = "disputed";
+        }
+        saveCatalogSeed(state);
+        return { match, source: "seed" };
+      }
+    }
+
+    return null;
+  }
+
   // Универсальный HTTP-вызов с подстановкой JWT из MPStorage
   async function request(path, options = {}) {
     const authHeaders = global.MPStorage ? global.MPStorage.getAuthHeaders() : {};
@@ -639,6 +1128,8 @@
     } catch (networkErr) {
       const err = new Error("Сервер недоступен (сетевая ошибка)");
       err.isOffline = true;
+      const fallback = tryCatalogOfflineFallback(path, options);
+      if (fallback !== null) return fallback;
       throw err;
     }
 
@@ -646,6 +1137,10 @@
     if (!res.ok) {
       const err = new Error(data.error || `HTTP ${res.status}`);
       err.status = res.status;
+      if (isRouteMissing(err)) {
+        const fallback = tryCatalogOfflineFallback(path, options);
+        if (fallback !== null) return fallback;
+      }
       throw err;
     }
     return data;
@@ -789,16 +1284,52 @@
         ]);
         if (Array.isArray(response.cards)) return response;
 
-        const cards = response.candidates
-          .filter(() => filters.card_type !== "team")
+        const cards = (response.candidates || [])
           .filter((user) => !filters.prime_time || (user.prime_time || "").includes(filters.prime_time))
-          .map((user) => ({
-            ...user,
-            card_key: `player_${user.id}`,
-            card_type: "player",
-            user_id: user.id,
-            profile_disciplines: user.disciplines || []
-          }));
+          .map((user) => {
+            const pds = Array.isArray(user.disciplines) ? user.disciplines : [];
+            if (user.team && user.team.looking_for_role_id) {
+              const t = user.team;
+              const capRank = pds.find((x) => Number(x.discipline_id) === Number(t.discipline_id)) || pds[0] || {};
+              const teamPd = {
+                discipline_id: t.discipline_id,
+                discipline_name: t.discipline_name || "",
+                category: t.category || "esports",
+                role_id: t.looking_for_role_id,
+                role_name: t.looking_for_role_name || "",
+                rank_id: capRank.rank_id || null,
+                rank_name: capRank.rank_name || "Middle+"
+              };
+              return {
+                ...user,
+                card_key: `team_${t.id}`,
+                card_type: "team",
+                user_id: user.id,
+                gradient: GRADIENTS[user.id % GRADIENTS.length],
+                bio: t.description || user.bio,
+                profile_disciplines: [teamPd],
+                team: t
+              };
+            }
+            return {
+              ...user,
+              card_key: `player_${user.id}`,
+              card_type: "player",
+              user_id: user.id,
+              gradient: GRADIENTS[user.id % GRADIENTS.length],
+              profile_disciplines: pds,
+              team: null
+            };
+          })
+          .filter((card) => {
+            if (filters.card_type && filters.card_type !== "all" && card.card_type !== filters.card_type) {
+              return false;
+            }
+            if (filters.category && filters.category !== "all") {
+              return card.profile_disciplines.some((pd) => pd.category === filters.category);
+            }
+            return true;
+          });
         return { cards };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
@@ -873,6 +1404,18 @@
     },
 
     // --- Отмена последнего свайпа в рамках сессии ---
+    async undoSwipe(toUserId) {
+      const targetId = Number(toUserId);
+      if (!targetId) return { ok: false };
+      this.undoSeedSwipe(targetId);
+      try {
+        return await this.delete(`/api/swipes/${targetId}`);
+      } catch (err) {
+        if (!isRouteMissing(err)) throw err;
+        return { ok: true, source: "seed" };
+      }
+    },
+
     undoSeedSwipe(toUserId) {
       const viewerId = global.MPStorage?.getUser()?.id || 5;
       const runtime = loadSeedRuntime();
