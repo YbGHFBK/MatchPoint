@@ -18,17 +18,21 @@ function signToken(user) {
 router.post('/register', async (req, res, next) => {
   const { email, password, nickname } = req.body;
 
-  if (!email || !password || !nickname) {
+  if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' ||
+      !password || typeof nickname !== 'string' || !nickname.trim()) {
     return res.status(400).json({ error: 'Заполните email, password и nickname' });
+  }
+  if (email.trim().length > 255 || nickname.trim().length > 100) {
+    return res.status(400).json({ error: 'Email или никнейм слишком длинный' });
   }
 
   if (password.length < 6) {
     return res.status(400).json({ error: 'Пароль должен быть не короче 6 символов' });
   }
 
-  const client = await db.pool.connect();
-
+  let client;
   try {
+    client = await db.pool.connect();
     await client.query('BEGIN');
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -48,9 +52,8 @@ router.post('/register', async (req, res, next) => {
       [user.id, nickname.trim(), avatarUrl]
     );
 
-    await client.query('COMMIT');
-
     const token = signToken(user);
+    await client.query('COMMIT');
     res.status(201).json({
       token,
       user: {
@@ -63,13 +66,13 @@ router.post('/register', async (req, res, next) => {
       },
     });
   } catch (err) {
-    await client.query('ROLLBACK');
+    if (client) await client.query('ROLLBACK');
     if (err.code === '23505') {
       return res.status(409).json({ error: 'Такой email или никнейм уже занят' });
     }
     next(err);
   } finally {
-    client.release();
+    client?.release();
   }
 });
 
@@ -77,7 +80,7 @@ router.post('/register', async (req, res, next) => {
 router.post('/login', async (req, res, next) => {
   const { email, password } = req.body;
 
-  if (!email || !password) {
+  if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
     return res.status(400).json({ error: 'Введите email и пароль' });
   }
 

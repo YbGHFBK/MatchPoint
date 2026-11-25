@@ -405,12 +405,11 @@ router.delete('/:targetUserId', requireAuth, forbidGuest, async (req, res, next)
     }
 
     await db.query(
-      'DELETE FROM swipes WHERE from_user_id = $1 AND to_user_id = $2',
-      [userId, targetUserId]
-    );
-
-    await db.query(
-      'DELETE FROM matches WHERE user1_id = LEAST($1::int, $2::int) AND user2_id = GREATEST($1::int, $2::int)',
+      `WITH removed_swipe AS (
+         DELETE FROM swipes WHERE from_user_id = $1 AND to_user_id = $2
+       )
+       DELETE FROM matches
+       WHERE user1_id = LEAST($1::int, $2::int) AND user2_id = GREATEST($1::int, $2::int)`,
       [userId, targetUserId]
     );
 

@@ -49,7 +49,7 @@ app.use('/api/reports', reportsRouter);
 app.use('/api/admin', adminRouter);
 
 app.use('/api', (req, res) => {
-  res.status(404).json({ error: 'API endpoint не найден' });
+  res.status(404).json({ code: 'ROUTE_NOT_FOUND', error: 'API endpoint не найден' });
 });
 
 app.use(errorLogger);

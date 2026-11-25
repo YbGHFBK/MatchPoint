@@ -1164,6 +1164,7 @@
     if (!res.ok) {
       const err = new Error(data.error || `HTTP ${res.status}`);
       err.status = res.status;
+      err.missingRoute = data.code === "ROUTE_NOT_FOUND" || data.error === "API endpoint не найден" || !data.error;
       if (isRouteMissing(err)) {
         const fallback = tryCatalogOfflineFallback(path, options);
         if (fallback !== null) return fallback;
@@ -1175,7 +1176,7 @@
 
  function isRouteMissing(err) {
     return Boolean(
-      err && (err.isOffline || err.status === 404 || err.status === 405 || err.status === 501)
+      err && (err.isOffline || (err.status === 404 && err.missingRoute) || err.status === 405 || err.status === 501)
     );
   }
 
@@ -1210,7 +1211,7 @@
         if (global.MPStorage && res.token && res.user) {
           global.MPStorage.setAuthSession(res.token, res.user);
         }
-        return { ...res, source: "server" };
+        return { source: "server", ...res };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
         const cleanEmail = String(email || "").trim().toLowerCase();
@@ -1268,15 +1269,7 @@
         if (global.MPStorage) global.MPStorage.clearAuth();
         return { user: target, source: "guest" };
       }
-      try {
-        return await this.login({ email: target.email, password: "password" });
-      } catch (_) {
-        const fakeToken = `demo_jwt_user_${target.id}`;
-        if (global.MPStorage) {
-          global.MPStorage.setAuthSession(fakeToken, target);
-        }
-        return { token: fakeToken, user: target, source: "seed" };
-      }
+      return this.login({ email: target.email, password: "password" });
     },
 
     // --- Справочники (disciplines, discipline_roles, ranks) ---
