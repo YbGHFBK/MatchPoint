@@ -26,7 +26,21 @@ async function requireAuth(req, res, next) {
       return res.status(403).json({ error: 'Аккаунт заблокирован навсегда' });
     }
 
-    if (user.status === 'temp_banned' && user.ban_until && new Date(user.ban_until) > new Date()) {
+    const now = new Date();
+    if (
+      (user.status === 'temp_banned' || user.status === 'muted') &&
+      user.ban_until &&
+      new Date(user.ban_until) <= now
+    ) {
+      await db.query(
+        "UPDATE users SET status = 'active', ban_until = NULL WHERE id = $1",
+        [user.id]
+      );
+      user.status = 'active';
+      user.ban_until = null;
+    }
+
+    if (user.status === 'temp_banned' && user.ban_until && new Date(user.ban_until) > now) {
       return res.status(403).json({
         error: `Аккаунт временно заблокирован до ${new Date(user.ban_until).toLocaleString('ru-RU')}`,
       });
@@ -48,4 +62,11 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+function forbidGuest(req, res, next) {
+  if (req.user?.role === 'guest') {
+    return res.status(403).json({ error: 'Гостям недоступно это действие. Войдите или зарегистрируйтесь' });
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireRole, forbidGuest };

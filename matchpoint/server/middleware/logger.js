@@ -65,20 +65,26 @@ async function logAdminAction({
 // 3. Автоматический аудит изменяющих запросов модераторов и админов
 function auditLogger(req, res, next) {
   const trackedMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
-  const isTrackedPath =
-    req.originalUrl.startsWith('/api/admin') || req.originalUrl.startsWith('/api/reports');
+  const pathOnly = req.originalUrl.split('?')[0].replace(/\/+$/, '');
+  const isAdminPath = pathOnly.startsWith('/api/admin');
+  const isModerationReportPath =
+    pathOnly.startsWith('/api/reports') &&
+    !(req.method === 'POST' && pathOnly === '/api/reports');
 
-  if (!trackedMethods.has(req.method) || !isTrackedPath) {
+  if (!trackedMethods.has(req.method) || (!isAdminPath && !isModerationReportPath)) {
     return next();
   }
 
   res.on('finish', () => {
     const role = req.user?.role;
-    if (res.statusCode >= 400 || (role !== 'admin' && role !== 'moderator')) {
+    if (
+      res.locals.auditLogged ||
+      res.statusCode >= 400 ||
+      (role !== 'admin' && role !== 'moderator')
+    ) {
       return;
     }
 
-    const pathOnly = req.originalUrl.split('?')[0];
     const idMatch = pathOnly.match(/\/(\d+)(?:\/|$)/);
     const targetId = idMatch ? Number(idMatch[1]) : null;
     const targetType = pathOnly.startsWith('/api/reports') ? 'report' : 'admin_resource';

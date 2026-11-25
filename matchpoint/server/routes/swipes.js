@@ -1,6 +1,7 @@
 const express = require('express');
 const db = require('../db/database');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, forbidGuest } = require('../middleware/auth');
+
 
 const router = express.Router();
 
@@ -42,6 +43,7 @@ async function attachDisciplines(users) {
 
   return users.map((u) => ({
     ...u,
+    trust_score: u.trust_score != null ? Number(u.trust_score) : 5,
     disciplines: byUser.get(u.id) || [],
   }));
 }
@@ -117,6 +119,8 @@ router.get('/feed', requireAuth, async (req, res, next) => {
     }
 
     const discConditions = ['pd.profile_id = u.id'];
+    const teamConditions = ['t.captain_id = u.id', 't.looking_for_role_id IS NOT NULL'];
+    let hasDiscFilter = false;
 
     if (discipline_id !== undefined && discipline_id !== '') {
       const id = Number(discipline_id);
@@ -124,7 +128,10 @@ router.get('/feed', requireAuth, async (req, res, next) => {
         return res.status(400).json({ error: 'Некорректный discipline_id' });
       }
       values.push(id);
-      discConditions.push(`pd.discipline_id = $${values.length}`);
+      const param = `$${values.length}`;
+      discConditions.push(`pd.discipline_id = ${param}`);
+      teamConditions.push(`t.discipline_id = ${param}`);
+      hasDiscFilter = true;
     }
 
     if (role_id !== undefined && role_id !== '') {
@@ -133,7 +140,10 @@ router.get('/feed', requireAuth, async (req, res, next) => {
         return res.status(400).json({ error: 'Некорректный role_id' });
       }
       values.push(id);
-      discConditions.push(`pd.role_id = $${values.length}`);
+      const param = `$${values.length}`;
+      discConditions.push(`pd.role_id = ${param}`);
+      teamConditions.push(`t.looking_for_role_id = ${param}`);
+      hasDiscFilter = true;
     }
 
     if (rank_id !== undefined && rank_id !== '') {
@@ -142,7 +152,12 @@ router.get('/feed', requireAuth, async (req, res, next) => {
         return res.status(400).json({ error: 'Некорректный rank_id' });
       }
       values.push(id);
-      discConditions.push(`pd.rank_id = $${values.length}`);
+      const param = `$${values.length}`;
+      discConditions.push(`pd.rank_id = ${param}`);
+      teamConditions.push(
+        `EXISTS (SELECT 1 FROM profile_disciplines cpd WHERE cpd.profile_id = u.id AND cpd.discipline_id = t.discipline_id AND cpd.rank_id = ${param})`
+      );
+      hasDiscFilter = true;
     }
 
     if (category !== undefined && category !== '') {
@@ -150,33 +165,27 @@ router.get('/feed', requireAuth, async (req, res, next) => {
         return res.status(400).json({ error: 'category должен быть esports или it' });
       }
       values.push(category);
-      discConditions.push(`d.category = $${values.length}`);
+      const param = `$${values.length}`;
+      discConditions.push(`d.category = ${param}`);
+      teamConditions.push(`td.category = ${param}`);
+      hasDiscFilter = true;
     }
 
-    if (discConditions.length > 1) {
-      const teamConditions = ['t.captain_id = u.id', 't.looking_for_role_id IS NOT NULL'];
-      if (discipline_id !== undefined && discipline_id !== '') {
-        teamConditions.push(`t.discipline_id = ${Number(discipline_id)}`);
-      }
-      if (role_id !== undefined && role_id !== '') {
-        teamConditions.push(`t.looking_for_role_id = ${Number(role_id)}`);
-      }
-      if (category !== undefined && category !== '') {
-        teamConditions.push(`td.category = '${category === 'it' ? 'it' : 'esports'}'`);
-      }
-
+    if (hasDiscFilter) {
       conditions.push(
-        `(EXISTS (
-           SELECT 1
-           FROM profile_disciplines pd
-           JOIN disciplines d ON d.id = pd.discipline_id
-           WHERE ${discConditions.join(' AND ')}
-         ) OR EXISTS (
-           SELECT 1
-           FROM teams t
-           JOIN disciplines td ON td.id = t.discipline_id
-           WHERE ${teamConditions.join(' AND ')}
-         ))`
+        `((NOT EXISTS (
+            SELECT 1 FROM teams ot WHERE ot.captain_id = u.id AND ot.looking_for_role_id IS NOT NULL
+          ) AND EXISTS (
+            SELECT 1
+            FROM profile_disciplines pd
+            JOIN disciplines d ON d.id = pd.discipline_id
+            WHERE ${discConditions.join(' AND ')}
+          )) OR EXISTS (
+            SELECT 1
+            FROM teams t
+            JOIN disciplines td ON td.id = t.discipline_id
+            WHERE ${teamConditions.join(' AND ')}
+          ))`
       );
     }
 
@@ -209,7 +218,7 @@ router.get('/feed', requireAuth, async (req, res, next) => {
 });
 
 // 2. Отправить свайп (like / pass) и проверить взаимный мэтч
-router.post('/', requireAuth, async (req, res, next) => {
+router.post('/', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const fromUserId = getAuthUserId(req);
     const toUserId = Number(req.body.to_user_id);
@@ -358,7 +367,7 @@ router.get('/matches', requireAuth, async (req, res, next) => {
 });
 
 // 4. Удалить мэтч (анмэтч)
-router.delete('/matches/:matchId', requireAuth, async (req, res, next) => {
+router.delete('/matches/:matchId', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
     const matchId = Number(req.params.matchId);
@@ -384,7 +393,7 @@ router.delete('/matches/:matchId', requireAuth, async (req, res, next) => {
 });
 
 // 5. Отмена последнего свайпа (Undo)
-router.delete('/:targetUserId', requireAuth, async (req, res, next) => {
+router.delete('/:targetUserId', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
     const targetUserId = Number(req.params.targetUserId);

@@ -1,6 +1,8 @@
 const express = require('express');
 const db = require('../db/database');
+const { logAdminAction } = require('../middleware/logger');
 const { requireAuth, requireRole } = require('../middleware/auth');
+
 
 const adminRouter = express.Router();
 const reportsRouter = express.Router();
@@ -14,15 +16,16 @@ function getAuthUserId(req) {
   return req.user.id ?? req.user.userId;
 }
 
-async function writeAuditLog(actorId, action, targetType, targetId, details = {}) {
-  try {
-    await db.query(
-      `INSERT INTO audit_logs (actor_id, action, target_type, target_id, details)
-       VALUES ($1, $2, $3, $4, $5::jsonb)`,
-      [actorId, action, targetType, targetId, JSON.stringify(details)]
-    );
-  } catch (_) {
-  }
+async function writeAuditLog(req, res, action, targetType, targetId, details = {}) {
+  res.locals.auditLogged = true;
+  await logAdminAction({
+    actorId: getAuthUserId(req),
+    action,
+    targetType,
+    targetId,
+    details,
+    ip: req.ip || req.socket?.remoteAddress || null,
+  });
 }
 
 async function fetchAllDictionaries() {
@@ -221,7 +224,7 @@ reportsRouter.patch('/:id', requireAuth, requireRole('moderator', 'admin'), asyn
 
       await client.query('COMMIT');
 
-      await writeAuditLog(moderatorId, `report_${status}`, 'report', reportId, {
+      await writeAuditLog(req, res, `report_${status}`, 'report', reportId, {
         target_user_id: target.target_user_id,
         action_taken,
         new_status: newUserStatus,
@@ -402,7 +405,7 @@ adminRouter.patch('/users/:id', requireAuth, requireRole('moderator', 'admin'), 
       return res.status(400).json({ error: 'Нет полей для обновления' });
     }
 
-    await writeAuditLog(actorId, 'user_updated', 'user', targetId, auditDetails);
+    await writeAuditLog(req, res, 'user_updated', 'user', targetId, auditDetails);
 
     const { rows: updatedRows } = await db.query(
       `SELECT u.id, u.email, u.role, u.status, u.ban_until, p.nickname, p.trust_score, p.external_links
@@ -451,7 +454,7 @@ adminRouter.post('/dictionaries', requireAuth, requireRole('admin'), async (req,
         'INSERT INTO disciplines (name, category) VALUES ($1, $2) RETURNING *',
         [name, category]
       );
-      await writeAuditLog(actorId, 'dictionary_created', 'discipline', rows[0].id, rows[0]);
+      await writeAuditLog(req, res, 'dictionary_created', 'discipline', rows[0].id, rows[0]);
       return res.status(201).json({ item: rows[0] });
     }
 
@@ -465,7 +468,7 @@ adminRouter.post('/dictionaries', requireAuth, requireRole('admin'), async (req,
         'INSERT INTO discipline_roles (discipline_id, name) VALUES ($1, $2) RETURNING *',
         [disciplineId, name]
       );
-      await writeAuditLog(actorId, 'dictionary_created', 'discipline_role', rows[0].id, rows[0]);
+      await writeAuditLog(req, res, 'dictionary_created', 'discipline_role', rows[0].id, rows[0]);
       return res.status(201).json({ item: rows[0] });
     }
 
@@ -480,7 +483,7 @@ adminRouter.post('/dictionaries', requireAuth, requireRole('admin'), async (req,
         'INSERT INTO ranks (discipline_id, name, sort_order) VALUES ($1, $2, $3) RETURNING *',
         [disciplineId, name, sortOrder]
       );
-      await writeAuditLog(actorId, 'dictionary_created', 'rank', rows[0].id, rows[0]);
+      await writeAuditLog(req, res, 'dictionary_created', 'rank', rows[0].id, rows[0]);
       return res.status(201).json({ item: rows[0] });
     }
 
@@ -501,7 +504,7 @@ adminRouter.post('/dictionaries', requireAuth, requireRole('admin'), async (req,
          RETURNING *`,
         [city, venueName, address, lat, lng, isVerified]
       );
-      await writeAuditLog(actorId, 'dictionary_created', 'location', rows[0].id, rows[0]);
+      await writeAuditLog(req, res, 'dictionary_created', 'location', rows[0].id, rows[0]);
       return res.status(201).json({ item: rows[0] });
     }
 
@@ -530,7 +533,7 @@ adminRouter.patch('/dictionaries/location/:id', requireAuth, requireRole('admin'
       return res.status(404).json({ error: 'Локация не найдена' });
     }
 
-    await writeAuditLog(getAuthUserId(req), 'location_verified', 'location', id, {
+    await writeAuditLog(req, res, 'location_verified', 'location', id, {
       venue_name: rows[0].venue_name,
       is_verified: isVerified,
     });
@@ -565,7 +568,7 @@ adminRouter.delete('/dictionaries/:type/:id', requireAuth, requireRole('admin'),
       return res.status(404).json({ error: 'Запись не найдена' });
     }
 
-    await writeAuditLog(getAuthUserId(req), 'dictionary_deleted', type, id, {});
+    await writeAuditLog(req, res, 'dictionary_deleted', type, id, {});
     res.json({ message: 'Запись удалена из справочника' });
   } catch (err) {
     if (err.code === '23503') {
@@ -645,6 +648,7 @@ adminRouter.get('/logs', requireAuth, requireRole('admin'), async (req, res) => 
          al.target_type,
          al.target_id,
          al.details,
+         al.ip_address,
          al.created_at
        FROM audit_logs al
        LEFT JOIN profiles p ON p.user_id = al.actor_id
