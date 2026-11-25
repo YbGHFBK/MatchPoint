@@ -222,12 +222,6 @@
     const fDisc = document.getElementById("fDisciplineId");
     if (fDisc) fDisc.innerHTML = optionsHTML;
 
-    const draftDisc = document.getElementById("draftDisciplineId");
-    if (draftDisc) {
-      draftDisc.innerHTML = disciplines
-        .map((d) => `<option value="${d.id}">${esc(d.name)} (${d.category})</option>`)
-        .join("");
-    }
   }
 
   function populateDependentRolesAndRanks(disciplineId, selectedRoleId = "", selectedRankId = "") {
@@ -773,68 +767,6 @@
       }, 650);
     });
 
-    // 2. Черновик вакансии команды (teams) в sessionStorage
-    const draftDiscSelect = document.getElementById("draftDisciplineId");
-    const draftRoleSelect = document.getElementById("draftLookingRoleId");
-
-    function updateDraftRoleOptions(discId) {
-      const roles = state.dictionaries.discipline_roles.filter(
-        (r) => r.discipline_id === Number(discId)
-      );
-      if (draftRoleSelect) {
-        draftRoleSelect.innerHTML = roles
-          .map((r) => `<option value="${r.id}">${esc(r.name)}</option>`)
-          .join("");
-      }
-    }
-
-    if (draftDiscSelect) {
-      updateDraftRoleOptions(draftDiscSelect.value || 1);
-      draftDiscSelect.addEventListener("change", () => updateDraftRoleOptions(draftDiscSelect.value));
-    }
-
-    const teamDraftForm = document.getElementById("teamVacancyDraftForm");
-    if (teamDraftForm) {
-      window.MPStorage.bindFormDraft(teamDraftForm, "team_vacancy_form", (draft) => {
-        if (draft.discipline_id) {
-          updateDraftRoleOptions(draft.discipline_id);
-          if (draft.looking_for_role_id && draftRoleSelect) {
-            draftRoleSelect.value = draft.looking_for_role_id;
-          }
-        }
-        const badge = document.getElementById("draftRestoredBadge");
-        if (badge && (draft.name || draft.description)) badge.style.display = "inline-flex";
-      });
-
-      teamDraftForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const viewer = window.MPStorage.getUser();
-        if (viewer.role === "guest") {
-          showToast("🔒 Авторизуйтесь, чтобы опубликовать вакансию команды");
-          return;
-        }
-
-        try {
-          await window.MPApi.createTeam({
-            name: document.getElementById("draftTeamName").value,
-            discipline_id: draftDiscSelect.value,
-            looking_for_role_id: draftRoleSelect.value,
-            description: document.getElementById("draftDescription").value
-          });
-          window.MPStorage.clearDraft("team_vacancy_form");
-          teamDraftForm.reset();
-          updateDraftRoleOptions(draftDiscSelect?.value || 1);
-          const badge = document.getElementById("draftRestoredBadge");
-          if (badge) badge.style.display = "none";
-          closeModal("draftModal");
-          loadCards();
-          showToast("✅ Вакансия команды опубликована, черновик очищен из sessionStorage");
-        } catch (err) {
-          showToast(`⚠️ ${err.message}`);
-        }
-      });
-    }
-
     // 3. Жалоба модератору (reports)
     document.getElementById("reportForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -951,11 +883,6 @@
       openModal("reportModal");
     });
 
-    document.getElementById("openDraftModalBtn")?.addEventListener("click", () => openModal("draftModal"));
-    document.getElementById("mobileOpenDraftBtn")?.addEventListener("click", () => {
-      setBurgerOpen(false);
-      openModal("draftModal");
-    });
 
     document.getElementById("openAuthModalBtn")?.addEventListener("click", () => openModal("authModal"));
     document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", () => {
