@@ -67,9 +67,18 @@
     const base = "/api/teams/" + encodeURIComponent(params.get("id"));
     const { team: t } = await api.get(base);
     const owner = user.role === "captain" && t.captain_id === user.id;
-    const [{ applications }, dict] = owner
-      ? await Promise.all([api.get(base + "/applications"), api.getDictionaries()])
-      : [{ applications: [] }, {}];
+    const [{ applications }, dict, { events }] = owner
+      ? await Promise.all([api.get(base + "/applications"), api.getDictionaries(), api.get("/api/events")])
+      : [{ applications: [] }, {}, { events: [] }];
+    const compatible = events.filter((ev) => ev.discipline_id === t.discipline_id);
+    const registered = new Set(t.registered_event_ids);
+    const eventOptions = compatible
+      .filter(
+        (ev) =>
+          ev.status === "open" && ev.registrations_count < ev.max_participants && !registered.has(ev.id),
+      )
+      .map((ev) => option(ev.id, ev.title))
+      .join("");
     const member = (
       m,
       action,
@@ -100,7 +109,16 @@
               : '<p class="muted">Войдите, чтобы подать заявку.</p>'
             : ""
       }</section>
-      </aside></div>`;
+      ${
+        owner
+          ? `<section class="mp-card"><h2>Ивенты команды</h2>
+      ${eventOptions ? `<form data-action="register">${field("Открытые ивенты", select("event", eventOptions))}${button("Заявить команду")}</form>` : "<p>Открытых ивентов по дисциплине нет.</p>"}
+      ${compatible
+        .filter((ev) => registered.has(ev.id))
+        .map((ev) => link("events.html?id=" + ev.id, ev.title + " · результаты"))
+        .join("")}</section>`
+          : ""
+      }</aside></div>`;
     const draftKey = "vacancy_" + t.id + "_" + user.id;
     if (owner) {
       root.querySelector("[name=role]").value = t.looking_for_role_id || "";
@@ -123,6 +141,10 @@
       apply: async () => {
         await api.post(base + "/applications", {});
         notice("Заявка отправлена капитану");
+      },
+      register: async (v) => {
+        await api.post("/api/events/" + v.event + "/register", { team_id: t.id });
+        location.href = "events.html?id=" + v.event;
       },
       accept: (_, form) => membership("accept", form),
       kick: (_, form) => membership("kick", form),

@@ -214,6 +214,17 @@ function represents(user, registration) {
   return registration.user_id === user.id || (user.role === 'captain' && registration.captain_id === user.id);
 }
 
+router.get('/:id/registrations/me', requireAuth, async (req, res, next) => {
+  try {
+    const { rows } = await db.query(`SELECT er.*, COALESCE(t.name,p.nickname) AS name
+      FROM event_registrations er LEFT JOIN teams t ON t.id=er.team_id
+      LEFT JOIN profiles p ON p.user_id=er.user_id
+      WHERE er.event_id=$1 AND (er.user_id=$2 OR (t.captain_id=$2 AND $3='captain'))
+      ORDER BY er.id`, [req.params.id, req.user.id, req.user.role]);
+    res.json({ registrations: rows });
+  } catch (err) { next(err); }
+});
+
 router.get('/:id/registrations', ...organizer, async (req, res, next) => {
   try {
     const { rows } = await db.query('SELECT organizer_id FROM events WHERE id=$1', [req.params.id]);

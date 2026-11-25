@@ -334,7 +334,8 @@ router.get("/:id", validateTeamId, async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT t.*, d.name AS discipline_name, r.name AS looking_for_role_name,
-              p.nickname AS captain_nickname
+              p.nickname AS captain_nickname,
+              ARRAY(SELECT er.event_id FROM event_registrations er WHERE er.team_id = t.id) AS registered_event_ids
        FROM teams t
        JOIN disciplines d ON d.id = t.discipline_id
        LEFT JOIN discipline_roles r ON r.id = t.looking_for_role_id
