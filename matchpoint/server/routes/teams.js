@@ -251,4 +251,84 @@ router.post("/:id/applications", requireAuth, async (req, res, next) => {
   }
 });
 
+async function getTeamMembers(teamId, status) {
+  const { rows } = await db.query(
+    `SELECT m.user_id, p.nickname, m.role_id, r.name AS role_name
+     FROM team_members m
+     LEFT JOIN profiles p ON p.user_id = m.user_id
+     LEFT JOIN discipline_roles r ON r.id = m.role_id
+     WHERE m.team_id = $1 AND m.status = $2
+     ORDER BY m.joined_at, m.user_id`,
+    [teamId, status],
+  );
+  return rows;
+}
+
+router.get("/", async (req, res, next) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT t.id, t.name, t.discipline_id, d.name AS discipline_name,
+              t.looking_for_role_id, r.name AS looking_for_role_name,
+              (SELECT COUNT(*)::int FROM team_members m
+               WHERE m.team_id = t.id AND m.status = 'accepted') AS members_count
+       FROM teams t
+       JOIN disciplines d ON d.id = t.discipline_id
+       LEFT JOIN discipline_roles r ON r.id = t.looking_for_role_id
+       ORDER BY t.name, t.id`,
+    );
+    return res.json({ teams: rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+function validateTeamId(req, res, next) {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0 || id > 2147483647) {
+    return res.status(400).json({ error: "Некорректный ID команды" });
+  }
+  res.locals.teamId = id;
+  next();
+}
+
+router.get("/:id", validateTeamId, async (req, res, next) => {
+  const { teamId } = res.locals;
+  try {
+    const { rows } = await db.query(
+      `SELECT t.*, d.name AS discipline_name, r.name AS looking_for_role_name,
+              p.nickname AS captain_nickname
+       FROM teams t
+       JOIN disciplines d ON d.id = t.discipline_id
+       LEFT JOIN discipline_roles r ON r.id = t.looking_for_role_id
+       LEFT JOIN profiles p ON p.user_id = t.captain_id
+       WHERE t.id = $1`,
+      [teamId],
+    );
+    if (!rows.length) {
+      return res.status(404).json({ error: "Команда не найдена" });
+    }
+    const members = await getTeamMembers(teamId, "accepted");
+    return res.json({ team: { ...rows[0], members } });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:id/applications", requireAuth, requireRole("captain"), validateTeamId, async (req, res, next) => {
+  const { teamId } = res.locals;
+  try {
+    const { rows } = await db.query("SELECT captain_id FROM teams WHERE id = $1", [teamId]);
+    if (!rows.length) {
+      return res.status(404).json({ error: "Команда не найдена" });
+    }
+    if (rows[0].captain_id !== getAuthUserId(req)) {
+      return res.status(403).json({ error: "Только капитан этой команды может смотреть заявки" });
+    }
+    const applications = await getTeamMembers(teamId, "pending");
+    return res.json({ applications });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
