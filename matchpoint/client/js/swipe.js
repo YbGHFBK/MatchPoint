@@ -260,15 +260,69 @@
     }
   }
 
+  const SEARCH_MODE_MAP = {
+    all:            { card_type: "all",    category: "all" },
+    esports_player: { card_type: "player", category: "esports" },
+    esports_team:   { card_type: "team",   category: "esports" },
+    dev_player:     { card_type: "player", category: "it" },
+    dev_team:       { card_type: "team",   category: "it" }
+  };
+
+  function resolveSearchMode(filters) {
+    const ct = filters.card_type || "all";
+    const cat = filters.category || "all";
+    if (ct === "player" && cat === "esports") return "esports_player";
+    if (ct === "team"   && cat === "esports") return "esports_team";
+    if (ct === "player" && cat === "it")      return "dev_player";
+    if (ct === "team"   && cat === "it")      return "dev_team";
+    return "all";
+  }
+
+  function applyModeTheme(mode) {
+    document.documentElement.setAttribute("data-mode", mode || "all");
+  }
+
+  function filterDisciplineOptionsByCategory(category) {
+    const fDisc = document.getElementById("fDisciplineId");
+    if (!fDisc) return;
+    const { disciplines } = state.dictionaries;
+    const list = category && category !== "all"
+      ? disciplines.filter((d) => d.category === category)
+      : disciplines;
+
+    const esports = list.filter((d) => d.category === "esports");
+    const itList = list.filter((d) => d.category === "it");
+
+    let html = `<option value="">Все дисциплины</option>`;
+    if (esports.length) {
+      html += `<optgroup label="Киберспорт (esports)">${esports.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}</optgroup>`;
+    }
+    if (itList.length) {
+      html += `<optgroup label="IT и Хакатоны (it)">${itList.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}</optgroup>`;
+    }
+    fDisc.innerHTML = html;
+  }
+
   function syncFiltersToUI(filters) {
-    document.querySelectorAll("[data-card-type]").forEach((btn) => {
-      btn.classList.toggle("is-active", btn.getAttribute("data-card-type") === filters.card_type);
+    const mode = resolveSearchMode(filters);
+    applyModeTheme(mode);
+
+    document.querySelectorAll("[data-search-mode]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.getAttribute("data-search-mode") === mode);
     });
 
+    filterDisciplineOptionsByCategory(filters.category);
     const fDisc = document.getElementById("fDisciplineId");
-    if (fDisc) fDisc.value = filters.discipline_id || "";
+    if (fDisc) {
+      const valid = Array.from(fDisc.options).some((o) => String(o.value) === String(filters.discipline_id));
+      fDisc.value = valid ? (filters.discipline_id || "") : "";
+    }
 
-    populateDependentRolesAndRanks(filters.discipline_id, filters.role_id, filters.rank_id);
+    const activeDiscId = fDisc ? fDisc.value : filters.discipline_id;
+    const defaultCatDisc = !activeDiscId && filters.category === "it"
+      ? (state.dictionaries.disciplines.find((d) => d.category === "it")?.id || "")
+      : activeDiscId;
+    populateDependentRolesAndRanks(defaultCatDisc, filters.role_id, filters.rank_id);
 
     const fPrime = document.getElementById("fPrimeTime");
     if (fPrime) fPrime.value = filters.prime_time || "";
@@ -281,7 +335,21 @@
     populateDisciplineSelects();
     const saved = window.MPStorage.getFilters();
     syncFiltersToUI(saved);
-
+    document.querySelectorAll("[data-search-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const mode = btn.getAttribute("data-search-mode");
+        const preset = SEARCH_MODE_MAP[mode] || SEARCH_MODE_MAP.all;
+        const updated = window.MPStorage.setFilters({
+          card_type: preset.card_type,
+          category: preset.category,
+          discipline_id: "",
+          role_id: "",
+          rank_id: ""
+        });
+        syncFiltersToUI(updated);
+        loadCards();
+      });
+    });
     document.querySelectorAll("[data-card-type]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const card_type = btn.getAttribute("data-card-type");
@@ -393,7 +461,18 @@
     stack.innerHTML = visible.map((card, idx) => buildCardHTML(card, idx)).join("");
 
     const topCardEl = stack.querySelector(".swipe-card.is-top");
-    if (topCardEl) attachPointerSwipe(topCardEl);
+    if (topCardEl) {
+      attachPointerSwipe(topCardEl);
+      topCardEl.querySelector(".js-card-report-btn")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!state.cards.length) return;
+        const top = state.cards[0];
+        state.reportTargetCard = top;
+        const label = document.getElementById("reportTargetLabel");
+        if (label) label.textContent = top.card_type === "team" && top.team ? top.team.name : `@${top.nickname}`;
+        openModal("reportModal");
+      });
+    }
   }
 
   function buildCardHTML(card, index) {
@@ -429,11 +508,14 @@
         <div class="swipe-stamp swipe-stamp--skip">ПРОПУСК ✕</div>
 
         <div class="card-hero" style="background: ${card.gradient || "linear-gradient(135deg, #2b1d52, #5e35b1)"};">
-          <div class="card-hero__top">
+         <div class="card-hero__top">
             ${typeBadge}
-            <span class="trust-badge ${trustCls}" title="Репутация profiles.trust_score">
-              ★ ${trustNum} / 5.00
-            </span>
+            <div class="card-hero__right">
+              <span class="trust-badge ${trustCls}" title="Репутация profiles.trust_score">
+                ♥ ${trustNum} / 5.00
+              </span>
+              <button type="button" class="arcade-btn arcade-btn--xs text-coral js-card-report-btn" title="Пожаловаться на профиль">!</button>
+            </div>
           </div>
 
           <div class="card-hero__profile">
@@ -502,16 +584,21 @@
       } catch (_) {}
     });
 
+    let rafId = null;
     cardEl.addEventListener("pointermove", (e) => {
       if (!dragging) return;
       dx = e.clientX - startX;
       dy = e.clientY - startY;
 
-      const rotate = dx * 0.055;
-      cardEl.style.transform = `translate3d(${dx}px, ${dy}px, 0) rotate(${rotate}deg)`;
-
-      if (stampLike) stampLike.style.opacity = dx > 25 ? String(Math.min((dx - 25) / 85, 1)) : "0";
-      if (stampSkip) stampSkip.style.opacity = dx < -25 ? String(Math.min((-dx - 25) / 85, 1)) : "0";
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!dragging) return;
+        const rotate = dx * 0.045;
+        cardEl.style.transform = `translate3d(${dx}px, ${dy * 0.35}px, 0) rotate(${rotate}deg)`;
+        if (stampLike) stampLike.style.opacity = dx > 25 ? String(Math.min((dx - 25) / 85, 1)) : "0";
+        if (stampSkip) stampSkip.style.opacity = dx < -25 ? String(Math.min((-dx - 25) / 85, 1)) : "0";
+      });
     });
 
     function finishGesture() {
