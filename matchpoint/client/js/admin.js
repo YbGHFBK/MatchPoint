@@ -85,15 +85,11 @@
     const user = currentUser();
     const sel = document.getElementById("roleSwitcher");
     const mobSel = document.getElementById("mobileRoleSwitcher");
-    const authBtn = document.getElementById("openAuthModalBtn");
     if (sel && Array.from(sel.options).some((o) => Number(o.value) === Number(user.id))) {
       sel.value = String(user.id);
     }
     if (mobSel && Array.from(mobSel.options).some((o) => Number(o.value) === Number(user.id))) {
       mobSel.value = String(user.id);
-    }
-    if (authBtn) {
-      authBtn.textContent = `👤 ${user.nickname} (${user.role})`;
     }
   }
 
@@ -495,14 +491,6 @@
       });
     }
 
-    // Общая модалка входа/регистрации из client/js/auth.js:
-    // чинит мёртвую кнопку «Аккаунт» (#openAuthModalBtn) на admin.html.
-    window.MPAuth?.bindAuthModal({
-      onAuthSuccess: async () => {
-        await refreshAll();
-      }
-    });
-
     const burgerBtn = document.getElementById("burgerBtn");
     const drawer = document.getElementById("mobileDrawer");
     const backdrop = document.getElementById("mobileBackdrop");
@@ -512,6 +500,7 @@
       backdrop?.classList.toggle("is-open", open);
       burgerBtn?.setAttribute("aria-expanded", String(open));
     };
+    window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(refreshAll), () => toggleDrawer(false));
     burgerBtn?.addEventListener("click", () => toggleDrawer(!drawer.classList.contains("is-open")));
     backdrop?.addEventListener("click", () => toggleDrawer(false));
 

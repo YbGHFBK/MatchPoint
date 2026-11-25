@@ -64,6 +64,7 @@
     .ext-pill:hover { border-color: var(--mode-accent); color: var(--mode-accent); }
 
     .deck-empty { width: 100%; height: 100%; background: var(--bg-panel); border: 3px solid var(--mode-accent); box-shadow: 4px 4px 0px var(--shadow-hard); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 10px; }
+    .deck-stage.is-guest .swipe-controls, .deck-stage.is-guest .hotkeys-hint, .deck-stage.is-guest .deck-topbar > :last-child { display: none; }
     .deck-empty__icon { font-size: 2rem; }
 
     .swipe-stamp { position: absolute; top: 58px; z-index: 40; padding: 6px 12px; background: var(--bg-void); font-family: 'Press Start 2P', monospace; font-size: 0.72rem; opacity: 0; pointer-events: none; box-shadow: 4px 4px 0px var(--shadow-hard); }
@@ -154,7 +155,6 @@
           <a href="index.html" class="arcade-nav__link is-active"><span class="cursor-blink text-mint">▶</span> СВАЙПЫ</a>
           <a href="events.html" class="arcade-nav__link">ИВЕНТЫ</a>
           <a href="teams.html" class="arcade-nav__link">КОМАНДЫ</a>
-          <a href="profile.html" class="arcade-nav__link">ПРОФИЛЬ</a>
           <a href="admin.html" class="arcade-nav__link">АДМИН</a>
         </nav>
       </div>
@@ -169,7 +169,7 @@
           <option value="1">AdminRoot (admin)</option>
           <option value="13">TiltKing (muted • 2.10)</option>
         </select>
-        <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">👤 ShadowStep</button>
+        <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">Войти</button>
         <button class="arcade-btn arcade-btn--xs" id="themeToggleBtn" type="button" title="Сменить светлую / тёмную тему" aria-label="Сменить тему">☀️</button>
         <button class="burger-btn" id="burgerBtn" type="button" aria-label="Открыть меню" aria-controls="mobileDrawer" aria-expanded="false">
           <span></span><span></span><span></span>
@@ -183,7 +183,6 @@
     <a href="index.html" class="arcade-nav__link is-active">▶ СВАЙПЫ</a>
     <a href="events.html" class="arcade-nav__link">ИВЕНТЫ</a>
     <a href="teams.html" class="arcade-nav__link">КОМАНДЫ</a>
-    <a href="profile.html" class="arcade-nav__link">ПРОФИЛЬ</a>
     <a href="admin.html" class="arcade-nav__link">АДМИН</a>
     <div style="margin-top:auto;padding-top:12px;border-top:2px solid var(--border-dark);">
       <label class="arcade-label" for="mobileRoleSwitcher">АККАУНТ СЕССИИ</label>
@@ -197,7 +196,7 @@
         <option value="13">TiltKing (muted • 2.10)</option>
       </select>
       <div style="display:flex;gap:8px;">
-        <button class="arcade-btn arcade-btn--xs" style="flex:1;" id="mobileOpenAuthBtn" type="button">ВХОД</button>
+        <button class="arcade-btn arcade-btn--xs" style="flex:1;" id="mobileOpenAuthBtn" type="button">Войти</button>
       </div>
     </div>
   </nav>
@@ -393,6 +392,7 @@
 
   <script src="js/storage.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/swipe.js"></script>
 </body>
 </html>

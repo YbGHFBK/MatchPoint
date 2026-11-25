@@ -42,7 +42,6 @@ const Hub = (function () {
       ["index", "СВАЙПЫ"],
       ["events", "ИВЕНТЫ"],
       ["teams", "КОМАНДЫ"],
-      ["profile", "ПРОФИЛЬ"],
       ["admin", "АДМИН"],
     ];
     const nav = pages
@@ -82,6 +81,7 @@ const Hub = (function () {
         </div>
         <div class="arcade-hud-right">
           <select id="account" class="arcade-select arcade-select--compact hide-on-mobile" aria-label="Аккаунт">${options}</select>
+          <button class="arcade-btn arcade-btn--xs hide-on-mobile" id="openAuthModalBtn" type="button">Войти</button>
           <button class="arcade-btn arcade-btn--xs" id="theme" type="button" title="Сменить светлую / тёмную тему" aria-label="Сменить тему">${themeIcon}</button>
           <button class="burger-btn" id="burgerBtn" type="button" aria-label="Открыть меню" aria-controls="mobileDrawer" aria-expanded="false">
             <span></span><span></span><span></span>
@@ -94,6 +94,7 @@ const Hub = (function () {
         <div style="margin-top:auto;padding-top:12px;border-top:2px solid var(--border-dark);">
           <label class="arcade-label" for="mobileAccount">АККАУНТ СЕССИИ</label>
           <select id="mobileAccount" class="arcade-select">${options}</select>
+          <button class="arcade-btn arcade-btn--block" id="mobileOpenAuthBtn" type="button">Войти</button>
         </div>
       </nav>`;
     const account = document.getElementById("account");
@@ -111,6 +112,7 @@ const Hub = (function () {
     };
     burgerBtn?.addEventListener("click", () => setDrawer(!drawer.classList.contains("is-open")));
     backdrop?.addEventListener("click", () => setDrawer(false));
+    window.MPAuth.bindAccountButtons(() => window.MPAuth.openLoginModal(() => location.reload()), () => setDrawer(false));
     const switchAccount = async (selectEl) => {
       selectEl.disabled = true;
       try {
@@ -140,11 +142,12 @@ const Hub = (function () {
   async function start(page, render) {
     storage.initTheme();
     try {
-      if (storage.getToken()) {
+      if (storage.hasToken()) {
         try {
           Object.assign(user, (await api.getMe()).user);
         } catch (err) {
           if (err.status !== 401) throw err;
+          storage.clearAuth();
         }
       }
       header(page);

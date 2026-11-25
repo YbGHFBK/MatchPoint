@@ -103,17 +103,12 @@
     const user = window.MPStorage.getUser();
     const roleSelect = document.getElementById("roleSwitcher");
     const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-    const authBtn = document.getElementById("openAuthModalBtn");
 
     if (roleSelect && Array.from(roleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
       roleSelect.value = String(user.id);
     }
     if (mobileRoleSelect && Array.from(mobileRoleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
       mobileRoleSelect.value = String(user.id);
-    }
-    if (authBtn) {
-      authBtn.textContent = user.role === "guest" ? "🔐 Войти" : `👤 ${user.nickname}`;
-      authBtn.title = `${user.email || "Гость"} • роль: ${user.role} • статус: ${user.status}`;
     }
   }
 
@@ -131,17 +126,14 @@
       );
     });
 
-    // Если токен ещё не задан — инициализируем демо-аккаунт ShadowStep (id: 5 из 02_seed.sql)
-    if (!window.MPStorage.getToken() && window.MPStorage.getUser().role !== "guest") {
-      try {
-        await window.MPApi.switchSeedAccount(window.MPStorage.getUser().id || 5);
-      } catch (_) {}
-    } else if (window.MPStorage.getToken()) {
+    if (window.MPStorage.hasToken()) {
       // Если запущен реальный backend (/api/auth/me), синхронизируем актуальный профиль из БД
       try {
         const me = await window.MPApi.getMe();
         if (me && me.user) window.MPStorage.setUser(me.user);
-      } catch (_) {}
+      } catch (err) {
+        if (err.status === 401) window.MPStorage.clearAuth();
+      }
     }
 
     updateHeaderAuthUI();
@@ -402,6 +394,11 @@
   }
 
   async function loadCards(ignoreSessionHistory = false) {
+    if (!window.MPStorage.isAuthenticated()) {
+      state.cards = [];
+      renderDeck();
+      return;
+    }
     const filters = window.MPStorage.getFilters();
     try {
       const res = await window.MPApi.getCards(filters, ignoreSessionHistory);
@@ -426,6 +423,18 @@
     const stack = document.getElementById("cardStack");
     const counter = document.getElementById("deckCounter");
     if (!stack) return;
+    const signedIn = window.MPStorage.isAuthenticated();
+    stack.closest(".deck-stage").classList.toggle("is-guest", !signedIn);
+    if (!signedIn) {
+      if (counter) counter.textContent = "АНКЕТЫ";
+      stack.innerHTML = `
+        <div class="deck-empty">
+          <h3>Войдите в аккаунт, чтобы смотреть анкеты</h3>
+          <button type="button" class="arcade-btn-mint" id="deckLoginBtn">Войти</button>
+        </div>`;
+      document.getElementById("deckLoginBtn").onclick = () => openModal("authModal");
+      return;
+    }
 
     if (counter) {
       counter.innerHTML = `Найдено в выдаче: <b>${state.cards.length}</b>`;
@@ -756,6 +765,11 @@
 
   // ================= ВЗАИМНЫЕ МЭТЧИ (matches + contacts JSONB) =================
   async function loadMatches() {
+    if (!window.MPStorage.isAuthenticated()) {
+      state.matches = [];
+      renderMatches();
+      return;
+    }
     try {
       const res = await window.MPApi.getMatches();
       state.matches = res.matches || [];
@@ -1143,11 +1157,7 @@
 
     // Кнопка #btnReport удалена: жалоба теперь только через «!» на карточке (.js-card-report-btn)
 
-    document.getElementById("openAuthModalBtn")?.addEventListener("click", () => openModal("authModal"));
-    document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", () => {
-      setBurgerOpen(false);
-      openModal("authModal");
-    });
+    window.MPAuth.bindAccountButtons(() => openModal("authModal"), () => setBurgerOpen(false));
 
     document.querySelectorAll("[data-right-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1191,7 +1201,7 @@
         }
       }
       if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-      if (document.querySelector(".modal-overlay.is-open")) return;
+      if (!window.MPStorage.isAuthenticated() || document.querySelector(".modal-overlay.is-open")) return;
 
       if (e.key === "ArrowLeft") { e.preventDefault(); performSwipe(false); }
       else if (e.key === "ArrowRight") { e.preventDefault(); performSwipe(true); }
@@ -1202,10 +1212,11 @@
   // ================= ИНИЦИАЛИЗАЦИЯ =================
   document.addEventListener("DOMContentLoaded", async () => {
     await initHeaderAndSession();
-    state.dictionaries = await window.MPApi.getDictionaries();
-    initFilters();
     initControls();
     initFormsAndModals();
+    if (!window.MPStorage.isAuthenticated()) renderDeck();
+    state.dictionaries = await window.MPApi.getDictionaries();
+    initFilters();
     renderSessionHistory();
     await Promise.all([loadCards(), loadMatches()]);
   });

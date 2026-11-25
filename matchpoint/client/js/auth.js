@@ -1,16 +1,7 @@
 /* ==========================================================================
    MatchPoint — Общая логика модалки входа / регистрации (client/js/auth.js)
    Зона ответственности: Фронтенд-ядро
-   Раньше файл был пустым, из-за чего кнопка «Аккаунт» на admin.html не работала:
-   собственная логика модалки была только в swipe.js (index.html) и profile.js.
-   Теперь это переиспользуемый модуль window.MPAuth:
-   - при отсутствии #authModal в разметке — сам внедряет аркадную модалку в <body>;
-   - вешает открытие на #openAuthModalBtn / #mobileOpenAuthBtn;
-   - табы ВХОД/РЕГИСТРАЦИЯ, быстрая подстановка сид-аккаунтов, сабмит на
-     /api/auth/login и /api/auth/register через window.MPApi;
-   - после успеха диспатчит событие mp:auth-change и зовёт колбэк onAuthSuccess.
-   Подключение: <script src="js/auth.js"></script> и в page-скрипте:
-   window.MPAuth?.bindAuthModal({ onAuthSuccess: (user) => { ... } });
+   Кнопки аккаунта в шапке и общая форма входа и регистрации.
    ========================================================================== */
 
 (function (global) {
@@ -22,8 +13,8 @@
       <button type="button" class="arcade-btn arcade-btn--xs modal__close" data-close-modal="authModal" aria-label="Закрыть">×</button>
       <h3 class="font-pixel text-gold" id="authModalTitle" style="font-size:0.74rem;margin:0 0 12px;">🔐 АККАУНТ MATCHPOINT</h3>
       <div class="right-tabs" style="margin-bottom:14px;">
-        <button type="button" class="segment-btn is-active" style="flex:1;" data-auth-tab="login">ВХОД</button>
-        <button type="button" class="segment-btn" style="flex:1;" data-auth-tab="register">РЕГИСТРАЦИЯ</button>
+        <button type="button" class="arcade-btn arcade-btn--xs segment-btn is-active" style="flex:1;" data-auth-tab="login">ВХОД</button>
+        <button type="button" class="arcade-btn arcade-btn--xs segment-btn" style="flex:1;" data-auth-tab="register">РЕГИСТРАЦИЯ</button>
       </div>
       <form id="authForm">
         <div class="arcade-form-group" id="authNicknameGroup" style="display:none;">
@@ -150,17 +141,40 @@
     });
   }
 
-  const MPAuth = {
-    /** Внедряет модалку (если её нет) и вешает открытие на кнопки шапки. */
-    bindAuthModal(options = {}) {
-      const open = () => {
-        injectModalIfNeeded();
-        initModalInteractions(options.onAuthSuccess);
-        openAuthModal();
+  function bindAccountButtons(openLogin, closeDrawer) {
+    const buttons = ["openAuthModalBtn", "mobileOpenAuthBtn"]
+      .map((id) => document.getElementById(id)).filter(Boolean);
+    const refresh = () => {
+      const signedIn = global.MPStorage.isAuthenticated();
+      for (const button of buttons) {
+        button.textContent = signedIn ? `👤 ${global.MPStorage.getUser().nickname}` : "Войти";
+      }
+    };
+    for (const button of buttons) {
+      button.onclick = () => {
+        closeDrawer?.();
+        if (global.MPStorage.isAuthenticated()) global.location.assign("profile.html");
+        else openLogin();
       };
-      document.getElementById("openAuthModalBtn")?.addEventListener("click", open);
-      document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", open);
-    },
+    }
+    refresh();
+    global.addEventListener("mp:user-change", refresh);
+    global.addEventListener("mp:auth-change", refresh);
+    global.addEventListener("pageshow", (event) => {
+      if (event.persisted) global.location.reload();
+    });
+    global.addEventListener("storage", (event) => {
+      const { TOKEN, LEGACY_TOKEN } = global.MPStorage.KEYS;
+      if (event.key === null || event.key === TOKEN || event.key === LEGACY_TOKEN) {
+        global.location.reload();
+      } else {
+        refresh();
+      }
+    });
+  }
+
+  const MPAuth = {
+    bindAccountButtons,
 
     /** Программное открытие (например, при попытке действия, требующего входа). */
     openLoginModal(onAuthSuccess) {

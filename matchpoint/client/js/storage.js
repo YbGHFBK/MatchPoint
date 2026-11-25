@@ -58,15 +58,14 @@
     min_trust: ""         // profiles.trust_score NUMERIC(3,2)
   });
 
-  // Базовый демо-пользователь из 02_seed.sql (id: 5 — ShadowStep, player@matchpoint.dev)
   const DEFAULT_USER = Object.freeze({
-    id: 5,
-    email: "player@matchpoint.dev",
-    role: "player",
+    id: 6,
+    email: "guest@matchpoint.dev",
+    role: "guest",
     status: "active",
-    nickname: "ShadowStep",
-    avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=ShadowStep",
-    trust_score: 4.90
+    nickname: "GuestDemo",
+    avatar_url: null,
+    trust_score: 5
   });
 
   const memoryFallback = {
@@ -274,13 +273,14 @@
     getAuthHeaders() {
       const headers = {};
       const token = this.getToken();
-      if (token) headers.Authorization = `Bearer ${token}`;
+      if (token && !this.isTokenExpired(token)) headers.Authorization = `Bearer ${token}`;
       const user = this.getUser();
       if (user && user.id) headers["X-User-Id"] = String(user.id);
       return headers;
     },
 
     getUser() {
+      if (!this.hasToken()) return { ...DEFAULT_USER };
       const saved = readJSON(local, KEYS.USER, null) || readJSON(local, KEYS.LEGACY_USER, null);
       return sanitizeUser(saved || DEFAULT_USER);
     },
@@ -310,17 +310,9 @@
     clearAuth() {
       local.removeItem(KEYS.TOKEN);
       local.removeItem(KEYS.LEGACY_TOKEN);
-      const guest = sanitizeUser({
-        id: 6,
-        email: "guest@matchpoint.dev",
-        role: "guest",
-        status: "active",
-        nickname: "GuestDemo",
-        avatar_url: "https://api.dicebear.com/9.x/identicon/svg?seed=GuestDemo",
-        trust_score: 5.0
-      });
-      writeJSON(local, KEYS.USER, guest);
-      writeJSON(local, KEYS.LEGACY_USER, guest);
+      local.removeItem(KEYS.USER);
+      local.removeItem(KEYS.LEGACY_USER);
+      const guest = this.getUser();
       emitEvent("mp:auth-change", { hasToken: false, user: guest });
       return guest;
     },

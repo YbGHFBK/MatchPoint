@@ -104,15 +104,11 @@
     const user = window.MPStorage.getUser();
     const roleSelect = document.getElementById("roleSwitcher");
     const mobileRoleSelect = document.getElementById("mobileRoleSwitcher");
-    const authBtn = document.getElementById("openAuthModalBtn");
     if (roleSelect && Array.from(roleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
       roleSelect.value = String(user.id);
     }
     if (mobileRoleSelect && Array.from(mobileRoleSelect.options).some((o) => Number(o.value) === Number(user.id))) {
       mobileRoleSelect.value = String(user.id);
-    }
-    if (authBtn) {
-      authBtn.textContent = user.role === "guest" ? "🔐 ВОЙТИ" : `👤 ${user.nickname}`;
     }
   }
 
@@ -159,11 +155,7 @@
       toggleDrawer(false);
     });
 
-    document.getElementById("openAuthModalBtn")?.addEventListener("click", () => openModal("authModal"));
-    document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", () => {
-      toggleDrawer(false);
-      openModal("authModal");
-    });
+    window.MPAuth.bindAccountButtons(() => openModal("authModal"), () => toggleDrawer(false));
 
     document.querySelectorAll("[data-close-modal]").forEach((btn) => {
       btn.addEventListener("click", () => closeModal(btn.dataset.closeModal));
@@ -276,6 +268,7 @@
     document.getElementById("heroTrustMeta").textContent = `${trustLabel(score)}`;
 
     // Видимость кнопок: свой профиль vs чужой
+    document.getElementById("logoutBtn").style.display = isOwn ? "inline-flex" : "none";
     document.getElementById("openEditProfileBtn").style.display = isOwn ? "inline-flex" : "none";
     document.getElementById("openReportProfileBtn").style.display = isOwn ? "none" : "inline-flex";
     document.getElementById("backToMyProfileBtn").style.display = isOwn ? "none" : "inline-flex";
@@ -467,13 +460,17 @@
   }
 
   async function loadAll() {
+    if (!state.viewingUserId && !window.MPStorage.isAuthenticated()) {
+      window.location.replace("index.html");
+      return;
+    }
     try {
       const catRes = await window.MPApi.getProfileCatalog();
       state.catalog = catRes.disciplines || [];
       populateDisciplineSelects();
 
       const me = window.MPStorage.getUser();
-      const isOwn = !state.viewingUserId || Number(state.viewingUserId) === Number(me.id);
+      const isOwn = window.MPStorage.isAuthenticated() && (!state.viewingUserId || Number(state.viewingUserId) === Number(me.id));
 
       const profRes = isOwn
         ? await window.MPApi.getMyProfile()
@@ -497,6 +494,11 @@
   }
 
   function bindProfileEvents() {
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      window.MPStorage.clearAuth();
+      window.MPStorage.clearViewedCards();
+      window.location.replace("index.html");
+    });
     document.getElementById("openEditProfileBtn")?.addEventListener("click", () => {
       if (state.currentProfile) fillEditForm(state.currentProfile);
       openModal("editProfileModal");
