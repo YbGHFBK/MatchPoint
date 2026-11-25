@@ -142,9 +142,12 @@ INSERT INTO ranks (discipline_id, name, sort_order) VALUES
     (3, 'Senior / Призёр', 3);     -- 11
 
 INSERT INTO locations (city, venue_name, address, lat, lng, is_verified) VALUES
-    ('Гродно', 'CyberArena Grodno',     'ул. Советская 18',     53.6834, 23.8342, TRUE), -- id: 1
-    ('Минск',  'Meta Arena',            'пр-т Победителей 84',  53.9362, 27.5105, TRUE), -- id: 2
-    ('Гродно', 'Технопарк / Коворкинг', 'ул. Горького 91А',     53.7042, 23.8166, TRUE); -- id: 3
+    ('Гродно',  'CyberArena Grodno',      'ул. Советская 18',     53.6834, 23.8342, TRUE),  -- id: 1
+    ('Минск',   'Meta Arena',             'пр-т Победителей 84',  53.9362, 27.5105, TRUE),  -- id: 2
+    ('Гродно',  'Технопарк / Коворкинг',  'ул. Горького 91А',     53.7042, 23.8166, TRUE),  -- id: 3
+    ('Минск',   'SPACE IT Hub',           'ул. Октябрьская 16А',  53.8901, 27.5715, TRUE),  -- id: 4
+    ('Брест',   'Brest Cyber Loft',       'ул. Гоголя 65',        52.0942, 23.6978, TRUE),  -- id: 5
+    ('Гомель',  'Pixel Club Gomel',       'пр-т Ленина 32',       52.4242, 31.0143, FALSE); -- id: 6 (ожидает верификации админом)
 
 -- ============================================================================
 -- 4. ПРИВЯЗКА ПРОФИЛЕЙ К ДИСЦИПЛИНАМ (для фильтров свайпов)
@@ -210,21 +213,63 @@ INSERT INTO swipes (from_user_id, to_user_id, is_like) VALUES
     (11, 5,  TRUE),
     (7,  10, TRUE),
     (10, 7,  TRUE),
-    -- Односторонние (если зайти под player@matchpoint.dev и лайкнуть HeadTap (id:14) -> сразу будет Match!)
+    (4,  9,  TRUE),
+    (9,  4,  TRUE),
+    (8,  11, TRUE),
+    (11, 8,  TRUE),
+    (8,  12, TRUE),
+    (12, 8,  TRUE),
+    -- Односторонние (лайк HeadTap (id:14) под player@matchpoint.dev -> сразу Match!)
     (14, 5,  TRUE),
+    (15, 5,  TRUE),
     (5,  13, FALSE),
-    (8,  12, TRUE);
+    (9,  13, FALSE);
 
 INSERT INTO matches (user1_id, user2_id) VALUES
-    (5, 9),
-    (5, 11),
-    (7, 10);
+    (4,  9),
+    (5,  9),
+    (5,  11),
+    (7,  10),
+    (8,  11),
+    (8,  12);
 
 INSERT INTO trust_ratings (from_user_id, to_user_id, score, comment) VALUES
-    (5, 9,  5, 'Отличный AWP, спокойная инфа'),
-    (9, 5,  5, 'Хорошо открывает точки, не тильтует'),
-    (7, 10, 5, 'Варды по кд, комфортно играть'),
-    (5, 13, 1, 'Руинил раунды и кричал в войс');
+    (5 , 9 , 5, 'Отличный AWP, спокойная инфа и чёткие размены.'),
+    (9 , 5 , 5, 'Хорошо открывает точки, не тильтует даже при счёте 4:10.'),
+    (7 , 10, 5, 'Варды по кд, смоки вовремя, максимально комфортно играть.'),
+    (5 , 13, 1, 'Руинил раунды, игнорировал коллы капитана и кричал в войс.'),
+    (11, 5 , 5, 'Сделали вместе бэкенд на тренировочном хакатоне — всё по дедлайну.'),
+    (4 , 5 , 4, 'Сильный энтри в CS2, но иногда спешит с выходом без флешки.'),
+    (14, 5 , 5, 'Приятный в общении тиммейт, всегда держит прайм-тайм.'),
+    (4 , 9 , 5, 'Стабильный снайпер 10 lvl, вытащил два клатча 1v3 на Mirage.'),
+    (14, 9 , 5, 'Отличная позиционка и спокойные коллы без лишнего шума.'),
+    (11, 9 , 4, 'Очень сильный аим, но редко заходит на разбор демок.'),
+    (9 , 4 , 5, 'Грамотный IGL — заранее расписал раунды и раскидки на LAN.'),
+    (14, 4 , 5, 'Умеет собрать команду после проигранной пистолетки.'),
+    (5 , 4 , 4, 'Требовательный капитан, но по делу и без токсичности.'),
+    (8 , 11, 5, 'Сверстал весь интерфейс за ночь перед защитой, чистый код.'),
+    (12, 11, 5, 'Легко понимает задачи по ML-дашборду, быстро правит фидбек.'),
+    (5 , 11, 4, 'Хороший рифлер на выходных и отличный фронтендер.'),
+    (4 , 3 , 5, 'Турнир прошёл без задержек, сетка и судейство на уровне.'),
+    (8 , 3 , 5, 'Отличная организация хакатона: чёткие треки и адекватные менторы.'),
+    (7 , 3 , 5, 'Чёткое расписание и быстрая обратная связь от оргов.'),
+    (11, 8 , 5, 'Надёжный тимлид, поднял API и базу за пару часов.'),
+    (12, 8 , 5, 'Отличная архитектура проекта, спокойно ведёт команду.'),
+    (8 , 12, 5, 'Собрала рабочий ML-пайплайн и помогла с презентацией.'),
+    (10, 7 , 5, 'Сильный мидер, всегда приходит на ганги и не винит саппортов.'),
+    (12, 7 , 4, 'Уверенно стоит линию, иногда слишком агрессивно дайвит под Т2.'),
+    (10, 12, 5, 'Отличная четвёрка, вовремя роумит на мид и сейвит керри.'),
+    (9 , 14, 5, 'Железобетонный опорник B на Mirage и Inferno.'),
+    (4 , 14, 5, 'Знает все гранаты маппула, не опаздывает на праки.'),
+    (15, 17, 5, 'Надёжный клатчер, хладнокровно доигрывает ретейки.'),
+    (17, 15, 5, 'Уверенный снайпер, отлично держит центр карты.'),
+    (20, 21, 5, 'Топовый UI/UX дизайнер — прототип в Figma за 3 часа.'),
+    (21, 20, 5, 'Чистый Go/Node бэкенд, без костылей и с документацией.'),
+    (22, 23, 5, 'Быстро подготовил питч-дек и защитил проект перед жюри.'),
+    (9 , 13, 2, 'Постоянно спорил в войсе и ушёл в AFK на последних раундах.'),
+    (14, 13, 1, 'Фейковый ранг в анкете, токсичил всю карту.'),
+    (4 , 13, 3, 'Механика неплохая, но с дисциплиной и коммуникацией беда.'),
+    (11, 13, 2, 'Зашёл в лобби без микрофона и ливнул после 5-го раунда.');
 
 -- ============================================================================
 -- 6. КОМАНДЫ И УЧАСТНИКИ (13 команд: CS2, Dota 2, Хакатон)
@@ -245,33 +290,55 @@ INSERT INTO teams (captain_id, discipline_id, name, description, looking_for_rol
     (44, 3, 'ShipFast Crew', 'Сильный тех-стек уже собран, нужен Team Lead / Pitch для защиты.', 15);
 
 INSERT INTO team_members (team_id, user_id, role_id, status) VALUES
-    -- Grodno Five
-    (1, 4,  5,  'accepted'),
-    (1, 9,  1,  'accepted'),
-    (1, 14, 3,  'accepted'),
-    (1, 5,  2,  'pending'),
-    -- Radiant Stack
-    (2, 7,  7,  'accepted'),
-    (2, 10, 10, 'accepted'),
-    (2, 12, 9,  'accepted'),
-    -- NullPointer Crew
-    (3, 8,  11, 'accepted'),
-    (3, 11, 12, 'accepted'),
-    (3, 12, 13, 'accepted'),
-    -- Капитаны остальных команд (id 4..13)
-    (4, 30, 5, 'accepted'),
-    (5, 31, 5, 'accepted'),
-    (6, 32, 10, 'accepted'),
-    (7, 33, 7, 'accepted'),
-    (8, 34, 3, 'accepted'),
-    (9, 40, 15, 'accepted'),
+    (1 , 4 , 5 , 'accepted'),
+    (1 , 9 , 1 , 'accepted'),
+    (1 , 14, 3 , 'accepted'),
+    (1 , 5 , 2 , 'pending'),
+    (1 , 17, 2 , 'pending'),
+    (2 , 7 , 7 , 'accepted'),
+    (2 , 10, 10, 'accepted'),
+    (2 , 12, 9 , 'accepted'),
+    (2 , 26, 6 , 'pending'),
+    (3 , 8 , 11, 'accepted'),
+    (3 , 11, 12, 'accepted'),
+    (3 , 12, 13, 'accepted'),
+    (3 , 21, 14, 'pending'),
+    (4 , 30, 5 , 'accepted'),
+    (4 , 15, 1 , 'accepted'),
+    (4 , 17, 2 , 'accepted'),
+    (4 , 25, 4 , 'accepted'),
+    (5 , 31, 5 , 'accepted'),
+    (5 , 18, 5 , 'accepted'),
+    (5 , 27, 3 , 'accepted'),
+    (5 , 29, 3 , 'accepted'),
+    (6 , 32, 10, 'accepted'),
+    (6 , 16, 7 , 'accepted'),
+    (6 , 19, 10, 'accepted'),
+    (6 , 28, 9 , 'accepted'),
+    (7 , 33, 7 , 'accepted'),
+    (7 , 26, 6 , 'accepted'),
+    (7 , 28, 9 , 'accepted'),
+    (8 , 34, 3 , 'accepted'),
+    (8 , 25, 4 , 'accepted'),
+    (8 , 29, 3 , 'accepted'),
+    (9 , 40, 15, 'accepted'),
+    (9 , 20, 11, 'accepted'),
+    (9 , 23, 11, 'accepted'),
     (10, 41, 12, 'accepted'),
+    (10, 35, 11, 'accepted'),
+    (10, 38, 14, 'accepted'),
     (11, 42, 13, 'accepted'),
+    (11, 24, 13, 'accepted'),
+    (11, 36, 12, 'accepted'),
     (12, 43, 11, 'accepted'),
-    (13, 44, 11, 'accepted');
+    (12, 37, 13, 'accepted'),
+    (12, 39, 11, 'accepted'),
+    (13, 44, 11, 'accepted'),
+    (13, 22, 15, 'accepted'),
+    (13, 36, 12, 'accepted');
 
 -- ============================================================================
--- 7. ИВЕНТЫ (1 киберспорт + 1 хакатон), РЕГИСТРАЦИИ И МАТЧ СЕТКИ
+-- 7. ИВЕНТЫ (8 мероприятий разных форматов), РЕГИСТРАЦИИ И МАТЧИ СЕТКИ
 -- ============================================================================
 INSERT INTO events (organizer_id, discipline_id, location_id, event_type, title, description, start_at, max_participants, status, details) VALUES
     (
@@ -282,6 +349,7 @@ INSERT INTO events (organizer_id, discipline_id, location_id, event_type, title,
         16,
         'open',
         '{
+            "subtype": "lan",
             "format": "5x5",
             "bracket_type": "single_elimination",
             "prize_pool": "1500 BYN",
@@ -296,26 +364,158 @@ INSERT INTO events (organizer_id, discipline_id, location_id, event_type, title,
         20,
         'open',
         '{
+            "subtype": "hackathon",
             "tracks": ["Web & SaaS", "AI / ML", "GameDev"],
             "tech_stack": ["Node.js", "Python", "PostgreSQL", "HTML/CSS/JS"],
             "team_size_limit": 4,
-            "submission_deadline": "2026-12-20T18:00:00+03:00"
+            "submission_deadline": "2026-12-20T18:00:00+03:00",
+            "criteria": ["Идея и польза", "Техническая реализация", "UX и презентация"]
         }'::jsonb
-    ); -- id: 2
+    ), -- id: 2
+    (
+        3, 2, 2, 'esports',
+        'Dota 2 Minsk Major Qualifiers',
+        'Открытые квалификации по Dota 2 в Meta Arena. Captains Mode BO3, прямая трансляция.',
+        '2026-11-28 11:00:00+03',
+        8,
+        'ongoing',
+        '{
+            "subtype": "tournament",
+            "format": "5x5 Captains Mode",
+            "bracket_type": "single_elimination",
+            "prize_pool": "2000 BYN"
+        }'::jsonb
+    ), -- id: 3
+    (
+        3, 1, NULL, 'esports',
+        'CS2 Night Mix Online Cup #14',
+        'Быстрый вечерний онлайн-турнир по CS2 на Faceit-серверах. Подходит и готовым стакам, и соло-игрокам.',
+        '2026-12-05 20:00:00+03',
+        32,
+        'open',
+        '{
+            "subtype": "online",
+            "format": "5x5 MR12",
+            "bracket_type": "single_elimination"
+        }'::jsonb
+    ), -- id: 4
+    (
+        3, 2, 1, 'esports',
+        'Dota 2 Grand Finals Watch Party',
+        'Совместный просмотр гранд-финала на большом экране, квиз с призами и зона свободной игры.',
+        '2026-12-15 18:00:00+03',
+        40,
+        'open',
+        '{
+            "subtype": "watch_party",
+            "theme": "Grand Finals Night",
+            "schedule": [
+                {"title": "Сбор гостей и регистрация", "start_at": "2026-12-15T15:00:00.000Z"},
+                {"title": "Начало трансляции финала", "start_at": "2026-12-15T16:00:00.000Z"}
+            ]
+        }'::jsonb
+    ), -- id: 5
+    (
+        3, 3, NULL, 'hackathon',
+        'AlgoSprint: ICPC Training Contest',
+        '5-часовой онлайн-контест по алгоритмам и структурам данных в формате ICPC (команды до 3 человек).',
+        '2026-12-08 17:00:00+03',
+        50,
+        'open',
+        '{
+            "subtype": "programming_contest",
+            "tracks": ["Algorithms", "Graphs & DP"],
+            "tech_stack": ["C++", "Python", "Java", "Go"],
+            "team_size_limit": 3,
+            "submission_deadline": "2026-12-08T22:00:00+03:00",
+            "criteria": ["Решённые задачи", "Штрафное время"]
+        }'::jsonb
+    ), -- id: 6
+    (
+        3, 3, 4, 'hackathon',
+        'AI & FinTech Hackathon Minsk',
+        'Очный хакатон в SPACE IT Hub: ML-скоринг, антифрод и умные финансовые ассистенты.',
+        '2026-11-26 10:00:00+03',
+        16,
+        'ongoing',
+        '{
+            "subtype": "hackathon",
+            "theme": "NextGen FinTech & AI",
+            "tracks": ["FinTech", "LLM Agents", "Fraud Detection"],
+            "tech_stack": ["Python", "PyTorch", "FastAPI", "React", "PostgreSQL"],
+            "team_size_limit": 4,
+            "submission_deadline": "2026-12-30T18:00:00+03:00",
+            "criteria": ["Точность модели", "Бизнес-ценность", "Демо"]
+        }'::jsonb
+    ), -- id: 7
+    (
+        3, 1, 5, 'esports',
+        'Autumn CS2 University Cup',
+        'Прошедший осенний студенческий кубок в Brest Cyber Loft — финал завершился победой Grodno Five.',
+        '2026-10-18 12:00:00+03',
+        8,
+        'finished',
+        '{
+            "subtype": "lan",
+            "format": "5x5",
+            "bracket_type": "single_elimination"
+        }'::jsonb
+    ); -- id: 8
 
 INSERT INTO event_registrations (event_id, user_id, team_id) VALUES
-    (1, NULL, 1),    -- id: 1 (Команда Grodno Five на CS2 турнир)
-    (1, 11,   NULL), -- id: 2 (Соло-заявка / микс на CS2 турнир)
-    (2, NULL, 3),    -- id: 3 (Команда NullPointer Crew на Хакатон)
-    (2, 5,    NULL); -- id: 4 (ShadowStep соло на Хакатон)
+    -- Event 1 (CS2 Winter Cup)
+    (1, NULL, 1),    -- id: 1 (Grodno Five)
+    (1, 11,   NULL), -- id: 2 (PixelCraft solo)
+    (1, NULL, 4),    -- id: 3 (Brest Syndicate)
+    (1, NULL, 5),    -- id: 4 (Inferno Kings)
+    -- Event 2 (Winter CodeJam)
+    (2, NULL, 3),    -- id: 5 (NullPointer Crew)
+    (2, 5,    NULL), -- id: 6 (ShadowStep solo)
+    (2, NULL, 10),   -- id: 7 (PixelForge Jam)
+    (2, NULL, 11),   -- id: 8 (CampusAI Lab)
+    -- Event 3 (Dota 2 Minsk Major — ongoing)
+    (3, NULL, 2),    -- id: 9 (Radiant Stack)
+    (3, NULL, 6),    -- id: 10 (Dire Wolves)
+    (3, NULL, 7),    -- id: 11 (Rune Guardians)
+    (3, 16,   NULL), -- id: 12 (InvokerGod solo)
+    -- Event 4 (CS2 Night Mix Online)
+    (4, NULL, 8),    -- id: 13 (Overtime Five)
+    (4, 15,   NULL), -- id: 14 (SniperWolf solo)
+    -- Event 5 (Watch Party)
+    (5, 5,    NULL), -- id: 15
+    (5, 7,    NULL), -- id: 16
+    -- Event 7 (AI & FinTech Hackathon — ongoing)
+    (7, NULL, 9),    -- id: 17 (FinFlow Squad)
+    (7, NULL, 12),   -- id: 18 (ZeroDay Shield)
+    -- Event 8 (Finished CS2 Cup)
+    (8, NULL, 1),    -- id: 19 (Grodno Five)
+    (8, NULL, 4);    -- id: 20 (Brest Syndicate)
 
--- Спорный матч в сетке для проверки арбитража судьёй
 INSERT INTO tournament_matches (event_id, round, participant1_id, participant2_id, score, proof_url, status, winner_id) VALUES
-    (1, 1, 1, 2, '13:11', 'https://example.com/proofs/match1_scoreboard.png', 'disputed', NULL);
+    -- Спорный матч в Event 1 (для арбитража судьёй)
+    (1, 1, 1,  2,  '13:11', 'https://example.com/proofs/match1_scoreboard.png', 'disputed',  NULL),
+    -- Текущая сетка Event 3 (Dota 2 Minsk Major)
+    (3, 1, 9,  10, '2:1',   NULL,                                              'confirmed', 9),
+    (3, 1, 11, 12, NULL,    NULL,                                              'scheduled', NULL),
+    -- Завершённый финал Event 8
+    (8, 1, 19, 20, '16:12', 'https://example.com/proofs/autumn_final.png',     'confirmed', 19);
 
 -- ============================================================================
--- 8. ЖАЛОБЫ (для панели модератора)
+-- 8. ЖАЛОБЫ (7 кейсов для панели модератора) И ЛОГИ АУДИТА
 -- ============================================================================
 INSERT INTO reports (reporter_id, target_user_id, reason, status, moderator_id, action_taken) VALUES
-    (5, 13, 'Оскорбления в голосовом чате во время игры', 'resolved', 2,    'mute'),
-    (9, 13, 'Фейковый ранг и токсичное описание профиля', 'open',     NULL, NULL);
+    (5,  13, 'Оскорбления в голосовом чате во время игры и саботаж раундов',            'resolved',  2,    'mute'),
+    (9,  13, 'Фейковый ранг Faceit 10 lvl в анкете и токсичное описание профиля',       'open',      NULL, NULL),
+    (11, 13, 'Спам ссылками на сторонний сайт в лобби-чате после мэтча',                'open',      NULL, NULL),
+    (7,  26, 'Подозрение на смурфинг и некорректное поведение на квалификациях Dota 2', 'open',      NULL, NULL),
+    (14, 17, 'Спор по поводу неявки на тренировочный прак (конфликт улажен)',           'dismissed', 2,    'none'),
+    (8,  20, 'Ошибочная жалоба — игрок просто перепутал трек хакатона',                 'dismissed', 2,    'none'),
+    (4,  13, 'Систематический AFK в последних раундах тренировочного матча',            'resolved',  1,    'warn');
+
+INSERT INTO audit_logs (actor_id, action, target_type, target_id, details, ip_address) VALUES
+    (2, 'report_resolved',    'report',     1, '{"action_taken":"mute","duration_hours":24}'::jsonb,  '127.0.0.1'),
+    (1, 'report_resolved',    'report',     7, '{"action_taken":"warn"}'::jsonb,                      '127.0.0.1'),
+    (1, 'user_updated',       'user',       3, '{"verified_organizer":true}'::jsonb,                  '127.0.0.1'),
+    (1, 'dictionary_created', 'location',   4, '{"city":"Минск","venue_name":"SPACE IT Hub"}'::jsonb, '127.0.0.1'),
+    (2, 'report_resolved',    'report',     5, '{"status":"dismissed","action_taken":"none"}'::jsonb, '127.0.0.1'),
+    (1, 'dictionary_created', 'location',   5, '{"city":"Брест","venue_name":"Brest Cyber Loft"}'::jsonb, '127.0.0.1');

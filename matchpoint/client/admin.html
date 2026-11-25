@@ -3,26 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MatchPoint — 16-Bit Admin &amp; Moderation Console</title>
+  <title>MatchPoint — Консоль Модератора и Администратора</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Press+Start+2P&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/arcade.css">
   <style>
-    .kpi-card { background: var(--bg-panel); border: 3px solid var(--border-pixel); box-shadow: 4px 4px 0px var(--shadow-hard); padding: 16px; }
-    .kpi-card__label { font-family: 'Press Start 2P', monospace; font-size: 0.52rem; color: var(--text-dim); line-height: 1.5; }
-    .kpi-card__value { font-family: 'Press Start 2P', monospace; font-size: 1.25rem; color: var(--accent-gold); margin-top: 10px; }
+    .kpi-card {
+      background: var(--bg-panel);
+      border: 2px solid var(--border-pixel);
+      border-top: 4px solid var(--accent-gold);
+      box-shadow: 4px 4px 0px var(--shadow-hard);
+      padding: 16px;
+    }
+    .kpi-card--coral { border-top-color: var(--accent-coral); }
+    .kpi-card--mint  { border-top-color: var(--accent-mint); }
+    .kpi-card--cyan  { border-top-color: var(--accent-cyan); }
+    .kpi-card__label { font-family: 'Press Start 2P', monospace; font-size: 0.5rem; color: var(--text-dim); line-height: 1.5; }
+    .kpi-card__value { font-family: 'Press Start 2P', monospace; font-size: 1.2rem; color: var(--accent-gold); margin-top: 10px; }
+    .kpi-card__sub   { font-size: 0.74rem; color: var(--text-muted); margin-top: 6px; }
+
     .admin-panel-section { display: none; }
     .admin-panel-section.is-active { display: block; }
     .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
-    .report-card { padding: 14px; background: var(--bg-inset); border: 2px solid var(--border-pixel); box-shadow: 3px 3px 0px var(--shadow-hard); margin-bottom: 12px; }
+
+    .report-card {
+      padding: 16px;
+      background: var(--bg-inset);
+      border: 2px solid var(--border-pixel);
+      border-left: 4px solid var(--accent-coral);
+      box-shadow: 3px 3px 0px var(--shadow-hard);
+      margin-bottom: 12px;
+    }
+    .report-card--resolved  { border-left-color: var(--accent-mint); }
+    .report-card--dismissed { border-left-color: var(--border-bright); }
     .report-card__top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
     .report-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--border-dark); }
+
     .dict-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
     @media (max-width: 900px) { .dict-grid { grid-template-columns: 1fr; } }
-    .dict-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg-inset); border: 2px solid var(--border-dark); margin-bottom: 6px; font-size: 0.8rem; }
+
+    .dict-item {
+      display: flex; justify-content: space-between; align-items: center; gap: 10px;
+      padding: 9px 12px; background: var(--bg-inset); border: 2px solid var(--border-dark);
+      margin-bottom: 6px; font-size: 0.82rem;
+    }
+
+    .bar-stat {
+      margin-bottom: 10px;
+      padding: 8px 10px;
+      background: var(--bg-inset);
+      border: 2px solid var(--border-dark);
+    }
+    .bar-stat__head { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 6px; }
+    .bar-stat__track { height: 10px; background: var(--bg-void); border: 1px solid var(--border-dark); }
+    .bar-stat__fill { height: 100%; background: var(--accent-cyan); }
+    .bar-stat__fill--mint  { background: var(--accent-mint); }
+    .bar-stat__fill--gold  { background: var(--accent-gold); }
+    .bar-stat__fill--coral { background: var(--accent-coral); }
+
     .access-denied { max-width: 580px; margin: 48px auto; text-align: center; padding: 28px 22px; }
     .form-control { background-color: var(--bg-inset); color: var(--text-main); border: 2px solid var(--border-pixel); padding: 6px 10px; font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; }
+    .action-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   </style>
 </head>
 <body class="arcade-theme">
@@ -30,25 +72,24 @@
   <header class="arcade-header">
     <div class="arcade-container arcade-header__inner">
       <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-   <a href="index.html" class="arcade-brand">
-  <div class="arcade-brand__icon">
-    <svg width="28" height="28" viewBox="0 0 11 11" shape-rendering="crispEdges" aria-hidden="true">
-      <rect x="4" y="1" width="3" height="1" fill="#FFD166"/>
-      <rect x="3" y="2" width="5" height="2" fill="#06D6A0"/>
-      <rect x="2" y="4" width="7" height="3" fill="#06D6A0"/>
-      <rect x="4" y="3" width="2" height="2" fill="#FFFFFF"/>
-      <rect x="3" y="7" width="5" height="2" fill="#059669"/>
-      <rect x="4" y="9" width="3" height="1" fill="#FFD166"/>
-    </svg>
-  </div>
-
-  <div>
-    <div class="mp-wordmark" aria-label="MatchPoint">
-      <span class="mp-word--match">MATCH</span><span class="mp-word--point">POINT</span>
-    </div>
-    <div class="arcade-brand__sub">16-BIT PARTY FINDER</div>
-  </div>
-</a>
+        <a href="index.html" class="arcade-brand">
+          <div class="arcade-brand__icon">
+            <svg width="28" height="28" viewBox="0 0 11 11" shape-rendering="crispEdges" aria-hidden="true">
+              <rect x="4" y="1" width="3" height="1" fill="#FFD166"/>
+              <rect x="3" y="2" width="5" height="2" fill="#06D6A0"/>
+              <rect x="2" y="4" width="7" height="3" fill="#06D6A0"/>
+              <rect x="4" y="3" width="2" height="2" fill="#FFFFFF"/>
+              <rect x="3" y="7" width="5" height="2" fill="#059669"/>
+              <rect x="4" y="9" width="3" height="1" fill="#FFD166"/>
+            </svg>
+          </div>
+          <div>
+            <div class="mp-wordmark" aria-label="MatchPoint">
+              <span class="mp-word--match">MATCH</span><span class="mp-word--point">POINT</span>
+            </div>
+            <div class="arcade-brand__sub">16-BIT PARTY FINDER</div>
+          </div>
+        </a>
 
         <nav class="arcade-nav" aria-label="Основная навигация">
           <a href="index.html" class="arcade-nav__link">СВАЙПЫ</a>
@@ -110,7 +151,7 @@
         <p class="text-dim text-sm" id="accessDeniedText" style="margin:12px 0 22px;">
           Текущая роль не имеет прав доступа к очереди жалоб и управлению платформой.
         </p>
-        <div class="btn-group" style="justify-content:center;">
+        <div class="action-row" style="justify-content:center;">
           <button type="button" class="arcade-btn" data-quick-switch="2">🛡 MODWATCH (MOD)</button>
           <button type="button" class="arcade-btn-gold" data-quick-switch="1">👑 ADMINROOT (ADMIN)</button>
         </div>
@@ -119,12 +160,12 @@
       <div id="adminWorkspace" style="display:none;">
         <div class="arcade-page-head">
           <div>
-            <div class="font-pixel text-cyan" style="font-size:0.56rem;margin-bottom:6px;">
-              STAGE 05 // MODERATION &amp; SYSTEM CONTROL
+            <div class="font-pixel text-cyan" style="font-size:0.54rem;margin-bottom:6px;">
+              MODERATION &amp; SYSTEM CONTROL
             </div>
             <h1 class="arcade-page-title" id="adminPageTitle">ПАНЕЛЬ МОДЕРАТОРА И АДМИНА</h1>
             <p class="arcade-page-sub" id="adminRoleSubtitle">
-              Очередь жалоб, роли, справочники, аналитика и журнал аудита.
+              Очередь жалоб, управление ролями, справочники, аналитика и аудит.
             </p>
           </div>
           <button type="button" class="arcade-btn arcade-btn--xs" id="refreshAdminBtn">↻ ОБНОВИТЬ</button>
@@ -134,18 +175,22 @@
           <div class="kpi-card">
             <div class="kpi-card__label">ПОЛЬЗОВАТЕЛИ</div>
             <div class="kpi-card__value" id="kpiUsers">—</div>
+            <div class="kpi-card__sub" id="kpiUsersSub">Всего в базе</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card kpi-card--coral">
             <div class="kpi-card__label">ОТКРЫТЫЕ ЖАЛОБЫ</div>
             <div class="kpi-card__value text-coral" id="kpiOpenReports">—</div>
+            <div class="kpi-card__sub" id="kpiReportsSub">Требуют разбора</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card kpi-card--mint">
             <div class="kpi-card__label">СРЕДНИЙ TRUST</div>
             <div class="kpi-card__value text-mint" id="kpiAvgTrust">—</div>
+            <div class="kpi-card__sub" id="kpiTrustSub">Зона риска (&lt;3.5): 0</div>
           </div>
-          <div class="kpi-card">
+          <div class="kpi-card kpi-card--cyan">
             <div class="kpi-card__label">МЭТЧИ / КОМАНДЫ / ИВЕНТЫ</div>
             <div class="kpi-card__value text-cyan" id="kpiActivity" style="font-size:0.95rem;">—</div>
+            <div class="kpi-card__sub">Активность платформы</div>
           </div>
         </section>
 
@@ -156,10 +201,11 @@
           <button type="button" class="arcade-btn tab-btn" data-tab="analytics" data-admin-only="true">📈 АНАЛИТИКА И АУДИТ</button>
         </div>
 
+        <!-- ВКЛАДКА 1: МОДЕРАЦИЯ -->
         <section class="admin-panel-section is-active" id="tab-moderation">
           <div class="pixel-box">
             <div class="arcade-section-head">
-              <h2 class="arcade-section-title">▶ REPORTS QUEUE // ОЧЕРЕДЬ ЖАЛОБ</h2>
+              <h2 class="arcade-section-title">▶ ОЧЕРЕДЬ ЖАЛОБ</h2>
               <select class="arcade-select arcade-select--compact" id="reportStatusFilter" aria-label="Фильтр статуса жалоб">
                 <option value="all">Все статусы</option>
                 <option value="open" selected>Открытые (open)</option>
@@ -171,6 +217,7 @@
           </div>
         </section>
 
+        <!-- ВКЛАДКА 2: ПОЛЬЗОВАТЕЛИ -->
         <section class="admin-panel-section" id="tab-users">
           <div class="pixel-box">
             <div class="filter-bar">
@@ -191,6 +238,7 @@
                 <option value="temp_banned">temp_banned</option>
                 <option value="perm_banned">perm_banned</option>
               </select>
+              <button type="button" class="arcade-btn-gold arcade-btn--xs" id="exportUsersCsvBtn">⬇ CSV</button>
             </div>
 
             <div class="table-wrap">
@@ -212,6 +260,7 @@
           </div>
         </section>
 
+        <!-- ВКЛАДКА 3: СПРАВОЧНИКИ -->
         <section class="admin-panel-section" id="tab-dictionaries">
           <div class="dict-grid">
             <div class="pixel-box">
@@ -289,6 +338,7 @@
           </div>
         </section>
 
+        <!-- ВКЛАДКА 4: АНАЛИТИКА И АУДИТ -->
         <section class="admin-panel-section" id="tab-analytics">
           <div class="grid-2" style="margin-bottom:20px;">
             <div class="pixel-box">
@@ -302,7 +352,13 @@
           </div>
 
           <div class="pixel-box">
-            <div class="arcade-section-head"><h3 class="arcade-section-title">🧾 ЖУРНАЛ АУДИТА (AUDIT_LOGS)</h3></div>
+            <div class="arcade-section-head">
+              <h3 class="arcade-section-title">🧾 ЖУРНАЛ АУДИТА</h3>
+              <div class="action-row">
+                <input class="arcade-input" id="auditSearchInput" placeholder="Фильтр по актору или действию..." style="min-width:220px;padding:6px 10px;">
+                <button type="button" class="arcade-btn-gold arcade-btn--xs" id="exportLogsCsvBtn">⬇ CSV</button>
+              </div>
+            </div>
             <div class="table-wrap">
               <table class="mp-table">
                 <thead>

@@ -10,7 +10,9 @@
   const state = {
     activeTab: "moderation",
     dictionaries: { disciplines: [], discipline_roles: [], ranks: [], locations: [] },
-    stats: null
+    stats: null,
+    lastUsers: [],
+    lastLogs: []
   };
 
   function esc(val) {
@@ -32,6 +34,20 @@
       el.style.transition = "0.22s ease";
       setTimeout(() => el.remove(), 240);
     }, 2800);
+  }
+
+  function exportCsv(filename, headers, rows) {
+    const csvCell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [headers.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))];
+    const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   function currentUser() {
@@ -101,8 +117,8 @@
     }
 
     document.getElementById("adminPageTitle").textContent = isAdmin()
-      ? "👑 Панель Администратора и Модерации"
-      : "🛡 Панель Модератора";
+      ? "👑 ПАНЕЛЬ АДМИНИСТРАТОРА И МОДЕРАЦИИ"
+      : "🛡 ПАНЕЛЬ МОДЕРАТОРА";
     document.getElementById("adminRoleSubtitle").textContent = isAdmin()
       ? "Полный доступ: очередь жалоб, роли, верификация, справочники, аналитика и аудит."
       : "Доступ модератора: разбор жалоб, выдача Warn / Mute / Temp Ban.";
@@ -120,32 +136,52 @@
   async function loadStats() {
     const stats = await window.MPApi.getAdminStats();
     state.stats = stats;
-    document.getElementById("kpiUsers").textContent = String(stats.users_total ?? 0);
+    const totalUsers = Number(stats.users_total ?? 0);
+    document.getElementById("kpiUsers").textContent = String(totalUsers);
     document.getElementById("kpiOpenReports").textContent = String(stats.reports?.open ?? 0);
     document.getElementById("tabOpenCount").textContent = String(stats.reports?.open ?? 0);
     document.getElementById("kpiAvgTrust").textContent = `★ ${Number(stats.avg_trust_score ?? 5).toFixed(2)}`;
     document.getElementById("kpiActivity").textContent =
       `${stats.matches_count ?? 0} / ${stats.teams_count ?? 0} / ${stats.events_count ?? 0}`;
 
+    const trustSub = document.getElementById("kpiTrustSub");
+    if (trustSub) trustSub.textContent = `Зона риска (<3.5): ${stats.low_trust_count ?? 0}`;
+    const repSub = document.getElementById("kpiReportsSub");
+    if (repSub) repSub.textContent = `Решено: ${stats.reports?.resolved ?? 0} • Отклонено: ${stats.reports?.dismissed ?? 0}`;
+
     const rolesBox = document.getElementById("rolesBreakdown");
-    rolesBox.innerHTML = Object.entries(stats.users_by_role || {}).map(([role, count]) => `
-      <div class="dict-item">
-        <span class="badge badge--team">${esc(role)}</span>
-        <strong>${count}</strong>
-      </div>
-    `).join("") || '<p class="text-sm text-muted">Нет данных</p>';
+    rolesBox.innerHTML = Object.entries(stats.users_by_role || {}).map(([role, count]) => {
+      const pct = totalUsers ? Math.round((Number(count) / totalUsers) * 100) : 0;
+      return `
+        <div class="bar-stat">
+          <div class="bar-stat__head">
+            <span class="badge badge--team">${esc(role)}</span>
+            <strong>${count} <span class="text-xs text-muted">(${pct}%)</span></strong>
+          </div>
+          <div class="bar-stat__track"><div class="bar-stat__fill" style="width:${pct}%"></div></div>
+        </div>
+      `;
+    }).join("") || '<p class="text-sm text-muted">Нет данных</p>';
 
     const statusBox = document.getElementById("statusBreakdown");
-    const statusRows = Object.entries(stats.users_by_status || {}).map(([st, count]) => `
-      <div class="dict-item">
-        <span class="status-pill ${statusPillClass(st)}">${esc(st)}</span>
-        <strong>${count}</strong>
-      </div>
-    `).join("");
+    const statusRows = Object.entries(stats.users_by_status || {}).map(([st, count]) => {
+      const pct = totalUsers ? Math.round((Number(count) / totalUsers) * 100) : 0;
+      const tone = st === "active" ? "mint" : st === "muted" ? "gold" : "coral";
+      return `
+        <div class="bar-stat">
+          <div class="bar-stat__head">
+            <span class="status-pill ${statusPillClass(st)}">${esc(st)}</span>
+            <strong>${count} <span class="text-xs text-muted">(${pct}%)</span></strong>
+          </div>
+          <div class="bar-stat__track"><div class="bar-stat__fill bar-stat__fill--${tone}" style="width:${pct}%"></div></div>
+        </div>
+      `;
+    }).join("");
+
     statusBox.innerHTML = statusRows + `
       <div class="dict-item">
         <span>Игроки с низким Trust (&lt; 3.5)</span>
-        <strong class="text-danger">${stats.low_trust_count ?? 0}</strong>
+        <strong class="text-coral">${stats.low_trust_count ?? 0}</strong>
       </div>
       <div class="dict-item">
         <span>Жалобы: открыто / решено / отклонено</span>
@@ -165,11 +201,11 @@
     }
 
     box.innerHTML = reports.map((r) => `
-      <article class="report-card">
+      <article class="report-card ${r.status === "resolved" ? "report-card--resolved" : r.status === "dismissed" ? "report-card--dismissed" : ""}">
         <div class="report-card__top">
           <div>
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-              <strong>#${r.id} Нарушитель: <a href="profile.html?id=${r.target_user_id}" style="color:var(--accent-lime);">${esc(r.target_nickname)}</a></strong>
+              <strong>#${r.id} Нарушитель: <a href="profile.html?id=${r.target_user_id}" style="color:var(--accent-gold);">${esc(r.target_nickname)} ↗</a></strong>
               <span class="badge badge--team">${esc(r.target_role)}</span>
               <span class="status-pill ${statusPillClass(r.target_status)}">${esc(r.target_status)}</span>
               <span class="trust-badge trust-badge--${trustClass(r.target_trust_score)}">★ ${Number(r.target_trust_score).toFixed(2)}</span>
@@ -181,16 +217,16 @@
           <span class="status-pill ${statusPillClass(r.status)}">${esc(r.status)}${r.action_taken ? ` • ${esc(r.action_taken)}` : ""}</span>
         </div>
 
-        <p style="margin:6px 0;font-size:var(--fs-sm);"><b>Причина:</b> ${esc(r.reason)}</p>
-        ${r.target_bio ? `<p class="text-xs text-secondary" style="margin:4px 0 0;">Описание профиля: «${esc(r.target_bio)}»</p>` : ""}
+        <p style="margin:6px 0;font-size:0.86rem;"><b>Причина:</b> ${esc(r.reason)}</p>
+        ${r.target_bio ? `<p class="text-xs text-dim" style="margin:4px 0 0;">Описание профиля: «${esc(r.target_bio)}»</p>` : ""}
 
         ${r.status === "open" ? `
           <div class="report-actions">
-            <button type="button" class="btn btn--ghost btn--xs" data-rep-act="dismiss" data-rep-id="${r.id}">Отклонить</button>
-            <button type="button" class="btn btn--warn btn--xs" data-rep-act="warn" data-rep-id="${r.id}">⚠ Warn</button>
-            <button type="button" class="btn btn--secondary btn--xs" data-rep-act="mute" data-rep-id="${r.id}">🔇 Mute (24ч)</button>
-            <button type="button" class="btn btn--danger btn--xs" data-rep-act="temp_ban" data-rep-id="${r.id}">⏳ Temp Ban (72ч)</button>
-            ${isAdmin() ? `<button type="button" class="btn btn--danger btn--xs" data-rep-act="perm_ban" data-rep-id="${r.id}">⛔ Perm Ban</button>` : ""}
+            <button type="button" class="arcade-btn arcade-btn--xs" data-rep-act="dismiss" data-rep-id="${r.id}">ОТКЛОНИТЬ</button>
+            <button type="button" class="arcade-btn-gold arcade-btn--xs" data-rep-act="warn" data-rep-id="${r.id}">⚠ WARN</button>
+            <button type="button" class="arcade-btn arcade-btn--xs" data-rep-act="mute" data-rep-id="${r.id}">🔇 MUTE 24Ч</button>
+            <button type="button" class="arcade-btn-coral arcade-btn--xs" data-rep-act="temp_ban" data-rep-id="${r.id}">⏳ BAN 72Ч</button>
+            ${isAdmin() ? `<button type="button" class="arcade-btn-coral arcade-btn--xs" data-rep-act="perm_ban" data-rep-id="${r.id}">⛔ PERM BAN</button>` : ""}
           </div>
         ` : `
           <div class="text-xs text-muted" style="margin-top:8px;">
@@ -204,6 +240,7 @@
       btn.addEventListener("click", async () => {
         const id = Number(btn.dataset.repId);
         const act = btn.dataset.repAct;
+        if (act === "perm_ban" && !confirm(`Выдать перманентный бан по жалобе #${id}?`)) return;
         const payload = act === "dismiss"
           ? { status: "dismissed", action_taken: "none" }
           : {
@@ -229,25 +266,26 @@
       status: document.getElementById("userStatusFilter")?.value || "all"
     };
     const { users } = await window.MPApi.getAdminUsers(filters);
+    state.lastUsers = users || [];
     const tbody = document.getElementById("usersTableBody");
     const meId = Number(currentUser().id);
 
-    if (!users?.length) {
+    if (!state.lastUsers.length) {
       tbody.innerHTML = '<tr><td colspan="7" class="text-muted">Пользователи не найдены.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = users.map((u) => {
+    tbody.innerHTML = state.lastUsers.map((u) => {
       const isSelf = Number(u.id) === meId;
       const roleCell = isAdmin() && !isSelf
-        ? `<select class="form-control" style="padding:4px 8px;font-size:var(--fs-xs);min-width:120px;" data-user-role="${u.id}">
+        ? `<select class="form-control" style="padding:4px 8px;min-width:120px;" data-user-role="${u.id}">
             ${ALL_ROLES.map((r) => `<option value="${r}" ${u.role === r ? "selected" : ""}>${r}</option>`).join("")}
            </select>`
         : `<span class="badge badge--team">${esc(u.role)}</span>`;
 
       const verifyBtn = isAdmin() && u.role === "organizer"
-        ? `<button type="button" class="btn btn--ghost btn--xs" data-verify-org="${u.id}" data-next-ver="${u.verified_organizer ? "false" : "true"}">
-            ${u.verified_organizer ? "✓ Верифицирован" : "Верифицировать"}
+        ? `<button type="button" class="${u.verified_organizer ? "arcade-btn-mint" : "arcade-btn"} arcade-btn--xs" data-verify-org="${u.id}" data-next-ver="${u.verified_organizer ? "false" : "true"}">
+            ${u.verified_organizer ? "✓ ORG" : "ВЕРИФИЦ."}
            </button>`
         : "";
 
@@ -255,7 +293,7 @@
         <tr>
           <td>#${u.id}</td>
           <td>
-            <a href="profile.html?id=${u.id}" style="color:var(--text-primary);font-weight:600;">${esc(u.nickname)}</a>
+            <a href="profile.html?id=${u.id}" style="color:#fff;font-weight:700;text-decoration:none;">${esc(u.nickname)} ↗</a>
             ${u.verified_organizer ? ' <span class="badge badge--it">✓ Org</span>' : ""}
             <div class="text-xs text-muted">${esc(u.email)}</div>
           </td>
@@ -265,17 +303,17 @@
             ${u.ban_until ? `<div class="text-xs text-muted">до ${new Date(u.ban_until).toLocaleDateString("ru-RU")}</div>` : ""}
           </td>
           <td><span class="trust-badge trust-badge--${trustClass(u.trust_score)}">★ ${Number(u.trust_score).toFixed(2)}</span></td>
-          <td>${u.open_reports_count > 0 ? `<b class="text-danger">${u.open_reports_count} откр.</b> / ` : ""}${u.reports_count ?? 0}</td>
+          <td>${u.open_reports_count > 0 ? `<b class="text-coral">${u.open_reports_count} откр.</b> / ` : ""}${u.reports_count ?? 0}</td>
           <td>
-            <div class="btn-group" style="flex-wrap:wrap;">
+            <div class="action-row">
               ${verifyBtn}
               ${!isSelf ? `
                 ${u.status !== "active"
-                  ? `<button type="button" class="btn btn--success btn--xs" data-user-status="${u.id}" data-next-status="active">Разбанить</button>`
-                  : `<button type="button" class="btn btn--warn btn--xs" data-user-status="${u.id}" data-next-status="muted">Mute</button>
-                     <button type="button" class="btn btn--danger btn--xs" data-user-status="${u.id}" data-next-status="temp_banned">Temp Ban</button>`}
+                  ? `<button type="button" class="arcade-btn-mint arcade-btn--xs" data-user-status="${u.id}" data-next-status="active">РАЗБАН</button>`
+                  : `<button type="button" class="arcade-btn-gold arcade-btn--xs" data-user-status="${u.id}" data-next-status="muted">MUTE</button>
+                     <button type="button" class="arcade-btn-coral arcade-btn--xs" data-user-status="${u.id}" data-next-status="temp_banned">BAN 72Ч</button>`}
                 ${isAdmin() && u.status !== "perm_banned"
-                  ? `<button type="button" class="btn btn--danger btn--xs" data-user-status="${u.id}" data-next-status="perm_banned">Perm</button>`
+                  ? `<button type="button" class="arcade-btn-coral arcade-btn--xs" data-user-status="${u.id}" data-next-status="perm_banned">PERM</button>`
                   : ""}
               ` : '<span class="text-xs text-muted">Вы</span>'}
             </div>
@@ -314,6 +352,7 @@
     tbody.querySelectorAll("[data-user-status]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const nextStatus = btn.dataset.nextStatus;
+        if (nextStatus === "perm_banned" && !confirm(`Выдать перманентный бан пользователю #${btn.dataset.userStatus}?`)) return;
         try {
           await window.MPApi.updateAdminUser(btn.dataset.userStatus, {
             status: nextStatus,
@@ -341,7 +380,7 @@
     document.getElementById("dictDisciplinesList").innerHTML = (dicts.disciplines || []).map((d) => `
       <div class="dict-item">
         <span><span class="badge ${d.category === "it" ? "badge--it" : "badge--esports"}">${esc(d.category)}</span> ${esc(d.name)}</span>
-        <button type="button" class="btn btn--ghost btn--xs" data-del-dict="discipline" data-id="${d.id}">✕</button>
+        <button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-dict="discipline" data-id="${d.id}">✕</button>
       </div>
     `).join("");
 
@@ -350,7 +389,7 @@
       return `
         <div class="dict-item">
           <span><b>${esc(r.name)}</b> <span class="text-xs text-muted">(${esc(r.discipline_name || disc?.name || "")})</span></span>
-          <button type="button" class="btn btn--ghost btn--xs" data-del-dict="role" data-id="${r.id}">✕</button>
+          <button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-dict="role" data-id="${r.id}">✕</button>
         </div>
       `;
     }).join("");
@@ -360,7 +399,7 @@
       return `
         <div class="dict-item">
           <span><b>${esc(rk.name)}</b> <span class="text-xs text-muted">(${esc(rk.discipline_name || disc?.name || "")})</span></span>
-          <button type="button" class="btn btn--ghost btn--xs" data-del-dict="rank" data-id="${rk.id}">✕</button>
+          <button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-dict="rank" data-id="${rk.id}">✕</button>
         </div>
       `;
     }).join("");
@@ -370,17 +409,18 @@
         <div>
           <strong>${esc(loc.venue_name)}</strong> <span class="text-xs text-muted">(${esc(loc.city)}, ${esc(loc.address)})</span>
         </div>
-        <div class="btn-group">
-          <button type="button" class="btn ${loc.is_verified ? "btn--success" : "btn--ghost"} btn--xs" data-toggle-loc="${loc.id}" data-next="${loc.is_verified ? "false" : "true"}">
-            ${loc.is_verified ? "✓ Проверено" : "Проверить"}
+        <div class="action-row">
+          <button type="button" class="${loc.is_verified ? "arcade-btn-mint" : "arcade-btn"} arcade-btn--xs" data-toggle-loc="${loc.id}" data-next="${loc.is_verified ? "false" : "true"}">
+            ${loc.is_verified ? "✓ ПРОВЕРЕНО" : "ПРОВЕРИТЬ"}
           </button>
-          <button type="button" class="btn btn--ghost btn--xs" data-del-dict="location" data-id="${loc.id}">✕</button>
+          <button type="button" class="arcade-btn arcade-btn--xs text-coral" data-del-dict="location" data-id="${loc.id}">✕</button>
         </div>
       </div>
     `).join("");
 
     document.querySelectorAll("[data-del-dict]").forEach((btn) => {
       btn.addEventListener("click", async () => {
+        if (!confirm("Удалить запись из справочника?")) return;
         try {
           await window.MPApi.deleteDictionaryItem(btn.dataset.delDict, btn.dataset.id);
           showToast("Запись удалена из справочника");
@@ -404,23 +444,37 @@
     });
   }
 
-  async function loadAuditLogs() {
-    if (!isAdmin()) return;
-    const { logs } = await window.MPApi.getAdminLogs();
+  function renderAuditLogsTable() {
     const tbody = document.getElementById("auditLogsBody");
-    if (!logs?.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Записей в журнале пока нет.</td></tr>';
+    const q = (document.getElementById("auditSearchInput")?.value || "").trim().toLowerCase();
+    const filtered = state.lastLogs.filter((l) => {
+      if (!q) return true;
+      return `${l.actor_nickname || ""} ${l.action || ""} ${l.target_type || ""} ${JSON.stringify(l.details || {})}`
+        .toLowerCase()
+        .includes(q);
+    });
+
+    if (!filtered.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted">Записей по фильтру не найдено.</td></tr>';
       return;
     }
-    tbody.innerHTML = logs.map((l) => `
+
+    tbody.innerHTML = filtered.map((l) => `
       <tr>
         <td class="text-xs">${new Date(l.created_at).toLocaleString("ru-RU")}</td>
         <td><strong>${esc(l.actor_nickname || `User #${l.actor_id}`)}</strong></td>
         <td><span class="badge badge--team">${esc(l.action)}</span></td>
         <td class="text-xs">${esc(l.target_type)} #${l.target_id ?? "—"}</td>
-        <td class="text-xs text-mono">${esc(JSON.stringify(l.details || {}))}</td>
+        <td class="text-xs">${esc(JSON.stringify(l.details || {}))}</td>
       </tr>
     `).join("");
+  }
+
+  async function loadAuditLogs() {
+    if (!isAdmin()) return;
+    const { logs } = await window.MPApi.getAdminLogs();
+    state.lastLogs = logs || [];
+    renderAuditLogsTable();
   }
 
   async function refreshAll() {
@@ -440,15 +494,7 @@
   }
 
   function bindEvents() {
-    const theme = window.MPStorage.initTheme();
-    const themeBtn = document.getElementById("themeToggleBtn");
-    if (themeBtn) {
-      themeBtn.textContent = theme === "dark" ? "☀️" : "🌙";
-      themeBtn.addEventListener("click", () => {
-        const next = window.MPStorage.toggleTheme();
-        themeBtn.textContent = next === "dark" ? "☀️" : "🌙";
-      });
-    }
+    window.MPStorage.initTheme();
 
     const burgerBtn = document.getElementById("burgerBtn");
     const drawer = document.getElementById("mobileDrawer");
@@ -490,6 +536,27 @@
     document.getElementById("userSearchInput")?.addEventListener("input", loadUsers);
     document.getElementById("userRoleFilter")?.addEventListener("change", loadUsers);
     document.getElementById("userStatusFilter")?.addEventListener("change", loadUsers);
+    document.getElementById("auditSearchInput")?.addEventListener("input", renderAuditLogsTable);
+
+    document.getElementById("exportUsersCsvBtn")?.addEventListener("click", () => {
+      if (!state.lastUsers.length) return showToast("Нет данных для экспорта");
+      exportCsv(
+        "matchpoint_users.csv",
+        ["ID", "Nickname", "Email", "Role", "Status", "Trust Score", "Reports"],
+        state.lastUsers.map((u) => [u.id, u.nickname, u.email, u.role, u.status, u.trust_score, u.reports_count ?? 0])
+      );
+      showToast("Экспорт пользователей выполнен (CSV)");
+    });
+
+    document.getElementById("exportLogsCsvBtn")?.addEventListener("click", () => {
+      if (!state.lastLogs.length) return showToast("Нет логов для экспорта");
+      exportCsv(
+        "matchpoint_audit_logs.csv",
+        ["Created At", "Actor", "Action", "Target Type", "Target ID", "Details"],
+        state.lastLogs.map((l) => [l.created_at, l.actor_nickname || l.actor_id, l.action, l.target_type, l.target_id, JSON.stringify(l.details || {})])
+      );
+      showToast("Экспорт журнала аудита выполнен (CSV)");
+    });
 
     document.getElementById("addDisciplineDictForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -546,14 +613,15 @@
           type: "location",
           city: document.getElementById("newLocCity").value.trim(),
           venue_name: document.getElementById("newLocVenue").value.trim(),
-          address: document.getElementById("newLocAddress").value.trim(),
-          is_verified: false
+          address: document.getElementById("newLocAddress").value.trim()
         });
-        e.target.reset();
-        showToast("Локация добавлена (ожидает верификации)");
+        document.getElementById("newLocCity").value = "";
+        document.getElementById("newLocVenue").value = "";
+        document.getElementById("newLocAddress").value = "";
+        showToast("Площадка добавлена");
         await refreshAll();
       } catch (err) {
-        showToast(err.message || "Ошибка добавления локации");
+        showToast(err.message || "Ошибка добавления площадки");
       }
     });
   }
