@@ -15,7 +15,7 @@ router.post(
   async (req, res, next) => {
     try {
       const userId = getAuthUserId(req);
-      const { name, discipline_id } = req.body;
+      const { name, discipline_id, description = null, looking_for_role_id = null } = req.body;
 
       if (
         typeof name !== "string" ||
@@ -26,8 +26,15 @@ router.post(
           .status(400)
           .json({ error: "Укажите корректное название команды" });
       }
-      if (!Number.isInteger(discipline_id) || discipline_id <= 0) {
+      if (!Number.isInteger(discipline_id) || discipline_id <= 0 || discipline_id > 2147483647) {
         return res.status(400).json({ error: "Некорректный discipline_id" });
+      }
+      if (description !== null && typeof description !== "string") {
+        return res.status(400).json({ error: "Описание должно быть строкой" });
+      }
+      if (looking_for_role_id !== null && (!Number.isInteger(looking_for_role_id) ||
+          looking_for_role_id <= 0 || looking_for_role_id > 2147483647)) {
+        return res.status(400).json({ error: "Некорректный ID роли" });
       }
 
       const client = await db.pool.connect();
@@ -35,13 +42,20 @@ router.post(
       try {
         await client.query("BEGIN");
         const teamRes = await client.query(
-          `INSERT INTO teams (captain_id, discipline_id, name)
-        VALUES ($1, $2, $3)
-        RETURNING *`,
-          [userId, discipline_id, name.trim()],
+          `INSERT INTO teams (captain_id, discipline_id, name, description, looking_for_role_id)
+           SELECT $1, $2, $3, $4, $5::integer
+           WHERE $5::integer IS NULL OR EXISTS (
+             SELECT 1 FROM discipline_roles WHERE id = $5 AND discipline_id = $2
+           )
+           RETURNING *`,
+          [userId, discipline_id, name.trim(), description?.trim() || null, looking_for_role_id],
         );
 
         const team = teamRes.rows[0];
+        if (!team) {
+          await client.query("ROLLBACK");
+          return res.status(400).json({ error: "Роль не найдена в дисциплине команды" });
+        }
 
         await client.query(
           `INSERT INTO team_members (team_id, user_id, status)
@@ -56,6 +70,9 @@ router.post(
         await client.query("ROLLBACK");
         if (err.code === "23505") {
           return res.status(409).json({ error: "Название команды уже занято" });
+        }
+        if (err.code === "23503" && err.constraint === "teams_discipline_id_fkey") {
+          return res.status(400).json({ error: "Дисциплина не найдена" });
         }
         next(err);
       } finally {
@@ -124,7 +141,7 @@ router.patch(
       } else if (action === "kick") {
         if (userId === team.captain_id) {
           return res
-            .status(404)
+            .status(400)
             .json({ error: "Капитан не может исключить себя" });
         }
 
@@ -132,12 +149,12 @@ router.patch(
           `UPDATE team_members
           SET status = 'kicked'
           WHERE team_id = $1 AND user_id = $2 AND status = 'accepted'
-          RETURNING team_id, user_id`,
+          RETURNING team_id, user_id, status`,
           [teamId, userId],
         );
 
         if (result.rowCount === 0) {
-          return res.status(400).json({ error: "Такого игрока нет в команде" });
+          return res.status(404).json({ error: "Такого игрока нет в команде" });
         }
 
         return res.status(200).json({ member: result.rows[0] });
@@ -147,5 +164,91 @@ router.patch(
     }
   },
 );
+
+router.patch(
+  "/:id/vacancy",
+  requireAuth,
+  requireRole("captain"),
+  async (req, res, next) => {
+    const teamId = Number(req.params.id);
+    const roleId = req.body?.looking_for_role_id;
+    const captainId = getAuthUserId(req);
+
+    if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 2147483647) {
+      return res.status(400).json({ error: "Некорректный ID команды" });
+    }
+    if (roleId !== null && (!Number.isInteger(roleId) || roleId <= 0 || roleId > 2147483647)) {
+      return res.status(400).json({ error: "Укажите ID роли или null для закрытия вакансии" });
+    }
+
+    try {
+      const { rows } = await db.query(
+        `UPDATE teams AS t
+         SET looking_for_role_id = $3
+         WHERE t.id = $1 AND t.captain_id = $2
+           AND ($3::integer IS NULL OR EXISTS (
+             SELECT 1 FROM discipline_roles AS r
+             WHERE r.id = $3 AND r.discipline_id = t.discipline_id
+           ))
+         RETURNING t.*`,
+        [teamId, captainId, roleId],
+      );
+      if (rows.length) {
+        return res.json({ team: rows[0] });
+      }
+
+      const { rows: teams } = await db.query("SELECT captain_id FROM teams WHERE id = $1", [teamId]);
+      if (!teams.length) {
+        return res.status(404).json({ error: "Команда не найдена" });
+      }
+      if (teams[0].captain_id !== captainId) {
+        return res.status(403).json({ error: "Только капитан этой команды может менять вакансию" });
+      }
+      return res.status(400).json({ error: "Роль не найдена в дисциплине команды" });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+router.post("/:id/applications", requireAuth, async (req, res, next) => {
+  const teamId = Number(req.params.id);
+  if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 2147483647) {
+    return res.status(400).json({ error: "Некорректный ID команды" });
+  }
+
+  try {
+    const { rows } = await db.query(
+      `WITH team AS (
+         SELECT id, looking_for_role_id FROM teams WHERE id = $1 FOR SHARE
+       ), application AS (
+         INSERT INTO team_members (team_id, user_id, role_id, status)
+         SELECT id, $2, looking_for_role_id, 'pending'
+         FROM team WHERE looking_for_role_id IS NOT NULL
+         ON CONFLICT (team_id, user_id) DO UPDATE
+           SET status = 'pending', role_id = EXCLUDED.role_id, joined_at = NOW()
+           WHERE team_members.status = 'kicked'
+         RETURNING team_id, user_id, role_id, status
+       )
+       SELECT team.looking_for_role_id, to_json(application) AS application
+       FROM team LEFT JOIN application ON application.team_id = team.id`,
+      [teamId, getAuthUserId(req)],
+    );
+
+    const team = rows[0];
+    if (!team) {
+      return res.status(404).json({ error: "Команда не найдена" });
+    }
+    if (team.looking_for_role_id === null) {
+      return res.status(409).json({ error: "Набор в команду закрыт" });
+    }
+    if (!team.application) {
+      return res.status(409).json({ error: "Вы уже подали заявку или состоите в команде" });
+    }
+    return res.status(201).json({ application: team.application });
+  } catch (err) {
+    next(err);
+  }
+});
 
 module.exports = router;

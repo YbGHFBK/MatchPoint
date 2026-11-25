@@ -655,22 +655,7 @@
         looking_for_role_id: Number(looking_for_role_id) || null,
         description: String(description || "").trim()
       };
-      try {
-        return await this.post("/api/teams", payload);
-      } catch (err) {
-        if (!isRouteMissing(err)) throw err;
-        const viewerId = global.MPStorage?.getUser()?.id || 4;
-        const runtime = loadSeedRuntime();
-        const created = {
-          id: runtime.teams.length + 1,
-          captain_id: viewerId,
-          ...payload,
-          members_count: 1
-        };
-        runtime.teams.push(created);
-        saveSeedRuntime(runtime);
-        return { ok: true, team: created, source: "seed" };
-      }
+      return this.post("/api/teams", payload);
     },
 
     // --- Жалоба модераторам (reports) ---
