@@ -543,11 +543,24 @@
       const query = qs.toString() ? `?${qs.toString()}` : "";
 
       try {
-        return await tryEndpoints([
+        const response = await tryEndpoints([
           () => this.get(`/api/swipes/feed${query}`),
           () => this.get(`/api/swipes/cards${query}`),
           () => this.get(`/api/cards${query}`)
         ]);
+        if (Array.isArray(response.cards)) return response;
+
+        const cards = response.candidates
+          .filter(() => filters.card_type !== "team")
+          .filter((user) => !filters.prime_time || (user.prime_time || "").includes(filters.prime_time))
+          .map((user) => ({
+            ...user,
+            card_key: `player_${user.id}`,
+            card_type: "player",
+            user_id: user.id,
+            profile_disciplines: user.disciplines || []
+          }));
+        return { cards };
       } catch (err) {
         if (!isRouteMissing(err)) throw err;
         const viewerId = global.MPStorage?.getUser()?.id || 5;
