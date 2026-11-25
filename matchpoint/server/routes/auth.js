@@ -106,8 +106,24 @@ router.post('/login', async (req, res, next) => {
       return res.status(403).json({ error: 'Аккаунт заблокирован навсегда' });
     }
 
-    if (user.status === 'temp_banned' && user.ban_until && new Date(user.ban_until) > new Date()) {
-      return res.status(403).json({ error: 'Аккаунт временно заблокирован' });
+    const now = new Date();
+    if (
+      (user.status === 'temp_banned' || user.status === 'muted') &&
+      user.ban_until &&
+      new Date(user.ban_until) <= now
+    ) {
+      await db.query(
+        "UPDATE users SET status = 'active', ban_until = NULL WHERE id = $1",
+        [user.id]
+      );
+      user.status = 'active';
+      user.ban_until = null;
+    }
+
+    if (user.status === 'temp_banned' && user.ban_until && new Date(user.ban_until) > now) {
+      return res.status(403).json({
+        error: `Аккаунт временно заблокирован до ${new Date(user.ban_until).toLocaleString('ru-RU')}`,
+      });
     }
 
     const token = signToken(user);
@@ -140,7 +156,13 @@ router.get('/me', requireAuth, async (req, res, next) => {
       [req.user.id]
     );
 
-    res.json({ user: rows[0] });
+    const me = rows[0];
+    res.json({
+      user: {
+        ...me,
+        trust_score: me.trust_score != null ? Number(me.trust_score) : 5,
+      },
+    });
   } catch (err) {
     next(err);
   }
