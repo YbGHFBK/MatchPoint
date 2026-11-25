@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db/database');
-const { requireAuth, requireRole } = require('../middleware/auth');
+const { requireAuth, requireRole, forbidGuest } = require('../middleware/auth');
 
 const router = express.Router();
 const organizer = [requireAuth, requireRole('organizer')];
@@ -184,7 +184,7 @@ router.patch('/:id', ...organizer, mutate(200, async (req, client, event) => {
   return { event: rows[0] };
 }));
 
-router.post('/:id/register', requireAuth, mutate(201, async (req, client, event) => {
+router.post('/:id/register', requireAuth, forbidGuest, mutate(201, async (req, client, event) => {
   check(event.status === 'open', 409, 'Регистрация закрыта');
   const { team_id = null } = req.body;
   if (team_id !== null) {
@@ -316,7 +316,7 @@ async function advanceRound(client, eventId, round) {
   }
 }
 
-router.post('/:id/result', requireAuth, mutate(200, async (req, client, event) => {
+router.post('/:id/result', requireAuth, forbidGuest, mutate(200, async (req, client, event) => {
   check(!['cancelled','finished'].includes(event.status), 409, 'Ивент закрыт');
   const { match_id, registration_id, score, proof_url, winner_id, repository_url, action = 'submit' } = req.body;
   if (event.event_type === 'hackathon') {

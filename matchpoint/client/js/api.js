@@ -499,7 +499,7 @@
       });
   }
 
-  function buildSeedCards(runtime, viewerId, filters = {}) {
+  function buildSeedCards(runtime, viewerId, filters = {}, includeViewed = false) {
     const swipedByViewer = new Set(
       runtime.swipes.filter((s) => s.from_user_id === viewerId).map((s) => s.to_user_id)
     );
@@ -510,7 +510,7 @@
       if (acc.id === viewerId) continue;
       if (acc.role === "guest") continue;
       if (acc.status === "temp_banned" || acc.status === "perm_banned") continue;
-      if (swipedByViewer.has(acc.id)) continue;
+      if (!includeViewed && swipedByViewer.has(acc.id)) continue;
 
       const pds = hydrateProfileDisciplines(acc.id);
       if (!pds.length) continue;
@@ -1267,8 +1267,9 @@
     },
 
     // --- Лента карточек для свайпов ---
-    async getCards(filters = {}) {
+    async getCards(filters = {}, includeViewed = false) {
       const qs = new URLSearchParams();
+      if (includeViewed) qs.set("include_viewed", "true");
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== null && v !== "" && v !== "all") {
           qs.set(k, String(v));
@@ -1335,7 +1336,7 @@
         if (!isRouteMissing(err)) throw err;
         const viewerId = global.MPStorage?.getUser()?.id || 5;
         const runtime = loadSeedRuntime();
-        return { cards: buildSeedCards(runtime, viewerId, filters), source: "seed" };
+        return { cards: buildSeedCards(runtime, viewerId, filters, includeViewed), source: "seed" };
       }
     },
 

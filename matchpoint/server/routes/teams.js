@@ -1,6 +1,6 @@
 const express = require("express");
 const db = require("../db/database");
-const { requireAuth, requireRole } = require("../middleware/auth");
+const { requireAuth, requireRole, forbidGuest } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -247,7 +247,7 @@ router.patch(
   },
 );
 
-router.post("/:id/applications", requireAuth, async (req, res, next) => {
+router.post("/:id/applications", requireAuth, forbidGuest, async (req, res, next) => {
   const teamId = Number(req.params.id);
   if (!Number.isInteger(teamId) || teamId <= 0 || teamId > 2147483647) {
     return res.status(400).json({ error: "Некорректный ID команды" });

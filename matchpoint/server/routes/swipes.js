@@ -100,8 +100,10 @@ router.get('/feed', requireAuth, async (req, res, next) => {
       'u.id <> $1',
       "u.role <> 'guest'",
       "u.status NOT IN ('temp_banned', 'perm_banned')",
-      'NOT EXISTS (SELECT 1 FROM swipes s WHERE s.from_user_id = $1 AND s.to_user_id = u.id)',
     ];
+    if (req.query.include_viewed !== 'true') {
+      conditions.push('NOT EXISTS (SELECT 1 FROM swipes s WHERE s.from_user_id = $1 AND s.to_user_id = u.id)');
+    }
 
     if (card_type === 'team') {
       conditions.push('EXISTS (SELECT 1 FROM teams t WHERE t.captain_id = u.id AND t.looking_for_role_id IS NOT NULL)');

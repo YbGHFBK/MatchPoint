@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../db/database');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, forbidGuest } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -146,7 +146,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
 });
 
 //Обновить свой профиль
-router.put('/me', requireAuth, async (req, res, next) => {
+router.put('/me', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
     const allowedFields = [
@@ -235,7 +235,7 @@ router.put('/me', requireAuth, async (req, res, next) => {
 });
 
 //Добавить или обновить дисциплину в своём профиле (upsert)
-router.put('/me/disciplines', requireAuth, async (req, res, next) => {
+router.put('/me/disciplines', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
     const disciplineId = Number(req.body.discipline_id);
@@ -290,7 +290,7 @@ router.put('/me/disciplines', requireAuth, async (req, res, next) => {
 });
 
 //Удалить дисциплину из своего профиля
-router.delete('/me/disciplines/:disciplineId', requireAuth, async (req, res, next) => {
+router.delete('/me/disciplines/:disciplineId', requireAuth, forbidGuest, async (req, res, next) => {
   try {
     const userId = getAuthUserId(req);
     const disciplineId = Number(req.params.disciplineId);

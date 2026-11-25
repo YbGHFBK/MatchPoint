@@ -404,7 +404,7 @@
   async function loadCards(ignoreSessionHistory = false) {
     const filters = window.MPStorage.getFilters();
     try {
-      const res = await window.MPApi.getCards(filters);
+      const res = await window.MPApi.getCards(filters, ignoreSessionHistory);
       const viewedKeys = ignoreSessionHistory
         ? new Set()
         : new Set(window.MPStorage.getViewedCards().map((v) => v.card_key));
