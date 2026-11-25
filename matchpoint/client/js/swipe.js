@@ -1,3 +1,4 @@
+
 /* ==========================================================================
    MatchPoint — Механика свайпов, фильтров, мэтчей и авторизации (client/js/swipe.js)
    Зона ответственности: Фронтенд-ядро (Карулис Иван)
@@ -466,10 +467,19 @@
       topCardEl.querySelector(".js-card-report-btn")?.addEventListener("click", (e) => {
         e.stopPropagation();
         if (!state.cards.length) return;
+        const viewer = window.MPStorage.getUser();
+        if (viewer.role === "guest") {
+          showToast("🔒 Жалобы доступны только авторизованным пользователям. Войдите через кнопку в шапке!");
+          return;
+        }
         const top = state.cards[0];
         state.reportTargetCard = top;
         const label = document.getElementById("reportTargetLabel");
-        if (label) label.textContent = top.card_type === "team" && top.team ? top.team.name : `@${top.nickname}`;
+        if (label) {
+          label.textContent = top.card_type === "team" && top.team
+            ? `${top.team.name} (@${top.nickname}, user_id: ${top.user_id})`
+            : `@${top.nickname} (user_id: ${top.user_id})`;
+        }
         openModal("reportModal");
       });
     }
@@ -910,12 +920,130 @@
       }, 650);
     });
 
+    // 2. Модалка «+ ВАКАНСИЯ» (черновик формы в sessionStorage + POST /api/teams)
+    const draftForm = document.getElementById("teamVacancyDraftForm");
+    const draftDiscSelect = document.getElementById("draftDisciplineId");
+    const draftRoleSelect = document.getElementById("draftLookingRoleId");
+    const DRAFT_KEY = "team_vacancy_draft";
+
+    const fillDraftRoleSelect = (disciplineId) => {
+      if (!draftRoleSelect) return;
+      const { discipline_roles } = state.dictionaries;
+      const discNum = Number(disciplineId) || 0;
+      const roles = discNum
+        ? discipline_roles.filter((r) => r.discipline_id === discNum)
+        : discipline_roles;
+      draftRoleSelect.innerHTML =
+        `<option value="">Любая роль</option>` +
+        roles.map((r) => `<option value="${r.id}">${esc(r.name)}</option>`).join("");
+    };
+
+    const populateDraftDisciplines = () => {
+      if (!draftDiscSelect) return;
+      const { disciplines } = state.dictionaries;
+      const esports = disciplines.filter((d) => d.category === "esports");
+      const itList = disciplines.filter((d) => d.category === "it");
+      draftDiscSelect.innerHTML =
+        `<option value="">Выберите дисциплину</option>` +
+        (esports.length
+          ? `<optgroup label="Киберспорт (esports)">${esports.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}</optgroup>`
+          : "") +
+        (itList.length
+          ? `<optgroup label="IT и Хакатоны (it)">${itList.map((d) => `<option value="${d.id}">${esc(d.name)}</option>`).join("")}</optgroup>`
+          : "");
+    };
+
+    const openDraftModal = () => {
+      const viewer = window.MPStorage.getUser();
+      if (!viewer || viewer.role === "guest") {
+        showToast("🔒 Публикация вакансий доступна капитанам. Войдите через кнопку в шапке!");
+        openModal("authModal");
+        return;
+      }
+      if (viewer.role !== "captain") {
+        showToast("🛡 Создавать команду и вакансию может только капитан. Смените аккаунт в шапке (например, KuroCap)!");
+        return;
+      }
+      openModal("draftModal");
+    };
+
+    document.getElementById("openDraftModalBtn")?.addEventListener("click", openDraftModal);
+    document.getElementById("mobileOpenDraftBtn")?.addEventListener("click", () => {
+      setBurgerOpen(false);
+      openDraftModal();
+    });
+
+    // Каскадное заполнение: discipline_id -> looking_for_role_id
+    draftDiscSelect?.addEventListener("change", () => fillDraftRoleSelect(draftDiscSelect.value));
+
+    if (draftForm) {
+      populateDraftDisciplines();
+      // Автосохранение черновика в sessionStorage + восстановление при повторном открытии
+      window.MPStorage.bindFormDraft(draftForm, DRAFT_KEY, (draft) => {
+        fillDraftRoleSelect(draft.discipline_id ?? draftDiscSelect?.value);
+        const badge = document.getElementById("draftRestoredBadge");
+        if (badge) badge.style.display = "inline-flex";
+      });
+
+      draftForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const viewer = window.MPStorage.getUser();
+        if (!viewer || viewer.role === "guest") {
+          showToast("🔒 Войдите под аккаунтом капитана, чтобы опубликовать вакансию");
+          return;
+        }
+        if (viewer.role !== "captain") {
+          showToast("🛡 Публиковать вакансии может только капитан команды");
+          return;
+        }
+
+        const name = document.getElementById("draftTeamName")?.value.trim() || "";
+        const disciplineId = Number(draftDiscSelect?.value || 0);
+        const roleId = Number(draftRoleSelect?.value || 0) || null;
+        const description = document.getElementById("draftDescription")?.value.trim() || "";
+
+        if (name.length < 3 || name.length > 50) {
+          showToast("⚠️ Название команды должно быть от 3 до 50 символов");
+          return;
+        }
+        if (!disciplineId) {
+          showToast("⚠️ Выберите дисциплину команды");
+          return;
+        }
+
+        const submitBtn = draftForm.querySelector("[type=submit]");
+        if (submitBtn) submitBtn.disabled = true;
+        try {
+          await window.MPApi.createTeam({
+            name,
+            discipline_id: disciplineId,
+            looking_for_role_id: roleId,
+            description
+          });
+          window.MPStorage.clearDraft(DRAFT_KEY);
+          draftForm.reset();
+          populateDraftDisciplines();
+          const badge = document.getElementById("draftRestoredBadge");
+          if (badge) badge.style.display = "none";
+          closeModal("draftModal");
+          showToast(`🚀 Команда «${name}» создана, вакансия опубликована (POST /api/teams)`);
+        } catch (err) {
+          showToast(`⚠️ ${err.message}`);
+        } finally {
+          if (submitBtn) submitBtn.disabled = false;
+        }
+      });
+    }
+
     // 3. Жалоба модератору (reports)
     document.getElementById("reportForm")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       if (!state.reportTargetCard) return;
       const reason = document.getElementById("reportReason").value.trim();
-      if (!reason) return;
+      if (reason.length < 5) {
+        showToast("⚠️ Опишите причину подробнее — сервер принимает минимум 5 символов");
+        return;
+      }
 
       try {
         await window.MPApi.sendReport({
@@ -1013,19 +1141,7 @@
     document.getElementById("btnSkip")?.addEventListener("click", () => performSwipe(false));
     document.getElementById("btnUndo")?.addEventListener("click", undoLastSwipe);
 
-    document.getElementById("btnReport")?.addEventListener("click", () => {
-      if (!state.cards.length) return;
-      const viewer = window.MPStorage.getUser();
-      if (viewer.role === "guest") {
-        showToast("🔒 Жалобы доступны только авторизованным пользователям");
-        return;
-      }
-      state.reportTargetCard = state.cards[0];
-      document.getElementById("reportTargetLabel").textContent =
-        `@${state.reportTargetCard.nickname} (user_id: ${state.reportTargetCard.user_id})`;
-      openModal("reportModal");
-    });
-
+    // Кнопка #btnReport удалена: жалоба теперь только через «!» на карточке (.js-card-report-btn)
 
     document.getElementById("openAuthModalBtn")?.addEventListener("click", () => openModal("authModal"));
     document.getElementById("mobileOpenAuthBtn")?.addEventListener("click", () => {
@@ -1094,3 +1210,4 @@
     await Promise.all([loadCards(), loadMatches()]);
   });
 })();
+
